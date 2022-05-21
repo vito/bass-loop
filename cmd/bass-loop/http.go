@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/v43/github"
-	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
 	"github.com/vito/bass/pkg/runtimes"
@@ -39,29 +39,34 @@ func httpServe(ctx context.Context) error {
 
 		mux := http.NewServeMux()
 
-		ghapp.SetValuesFromEnv("")
-
-		if ghapp.App.IntegrationID != 0 {
+		if githubAppID != 0 {
+			var keyContent []byte
 			if githubAppPrivateKey != "" {
-				keyContent, err := os.ReadFile(githubAppPrivateKey)
+				var err error
+				keyContent, err = os.ReadFile(githubAppPrivateKey)
 				if err != nil {
 					return err
 				}
-
-				ghapp.App.PrivateKey = string(keyContent)
-			} else if ghapp.App.PrivateKey == "" {
+			} else if keyContentStr, ok := os.LookupEnv("GITHUB_APP_PRIVATE_KEY"); ok {
+				keyContent = []byte(keyContentStr)
+			} else {
 				logger.Fatal("missing --github-app-key path/to/key or $GITHUB_APP_PRIVATE_KEY")
 			}
 
-			cc, err := githubapp.NewDefaultCachingClientCreator(ghapp)
+			webhookSecret := githubAppWebhookSecret
+			if secret, ok := os.LookupEnv("GITHUB_APP_WEBHOOK_SECRET"); ok {
+				webhookSecret = secret
+			}
+
+			appsTransport, err := ghinstallation.NewAppsTransport(nil, githubAppID, keyContent)
 			if err != nil {
 				return err
 			}
 
 			mux.Handle("/api/github/hook", &GithubHandler{
 				RunCtx:        ctx,
-				ClientCreator: cc,
-				WebhookSecret: ghapp.App.WebhookSecret,
+				AppsTransport: appsTransport,
+				WebhookSecret: webhookSecret,
 				Dispatches:    dispatches,
 			})
 		}
@@ -94,7 +99,7 @@ func httpServe(ctx context.Context) error {
 type GithubHandler struct {
 	RunCtx        context.Context
 	WebhookSecret string
-	ClientCreator githubapp.ClientCreator
+	AppsTransport *ghinstallation.AppsTransport
 	Dispatches    *errgroup.Group
 }
 
@@ -178,10 +183,8 @@ func (h *GithubHandler) dispatch(ctx context.Context, instID int64, user, repo s
 
 	ghscope := bass.NewEmptyScope()
 
-	client, err := h.ClientCreator.NewInstallationClient(instID)
-	if err != nil {
-		return fmt.Errorf("inst client: %w", err)
-	}
+	instTransport := ghinstallation.NewFromAppsTransport(h.AppsTransport, instID)
+	client := github.NewClient(&http.Client{Transport: instTransport})
 
 	ghscope.Set("start-check",
 		bass.Func("start-check", "[thunk name sha]", func(ctx context.Context, thunk bass.Thunk, name, sha string) (bass.Combiner, error) {

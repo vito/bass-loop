@@ -9,7 +9,6 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/palantir/go-githubapp/githubapp"
 	flag "github.com/spf13/pflag"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
@@ -22,8 +21,11 @@ var flags = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 var httpAddr string
 var sshAddr string
 
-var ghapp githubapp.Config
+var githubWebURL string
+var githubV3APIURL string
+var githubAppID int64
 var githubAppPrivateKey string
+var githubAppWebhookSecret string
 
 var profPort int
 var profFilePath string
@@ -38,12 +40,12 @@ func init() {
 	flags.StringVar(&httpAddr, "http", "0.0.0.0:8080", "address on which to listen for HTTP traffic")
 	flags.StringVar(&sshAddr, "ssh", "0.0.0.0:6455", "address on which to listen for SSH traffic")
 
-	flags.StringVar(&ghapp.WebURL, "github-url", "https://github.com", "GitHub web URL")
-	flags.StringVar(&ghapp.V3APIURL, "github-v3-api-url", "https://api.github.com", "GitHub v3 API URL")
+	flags.StringVar(&githubWebURL, "github-url", "https://github.com", "GitHub web URL")
+	flags.StringVar(&githubV3APIURL, "github-v3-api-url", "https://api.github.com", "GitHub v3 API URL")
 
-	flags.Int64Var(&ghapp.App.IntegrationID, "github-app-id", 0, "GitHub app ID")
-	flags.StringVar(&ghapp.App.PrivateKey, "github-app-key", "", "path to GitHub app private key")
-	flags.StringVar(&ghapp.App.WebhookSecret, "github-app-webhook-secret", "", "secret to verify for GitHub app webhook payloads")
+	flags.Int64Var(&githubAppID, "github-app-id", 0, "GitHub app ID")
+	flags.StringVar(&githubAppPrivateKey, "github-app-key", "", "path to GitHub app private key")
+	flags.StringVar(&githubAppWebhookSecret, "github-app-webhook-secret", "", "secret to verify for GitHub app webhook payloads")
 
 	flags.IntVar(&profPort, "profile", 0, "port number to bind for Go HTTP profiling")
 	flags.StringVar(&profFilePath, "cpu-profile", "", "take a CPU profile and save it to this path")
