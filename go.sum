@@ -1175,6 +1175,8 @@ github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae/go.mod h1:DD4vA1
 github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
 github.com/vito/bass v0.5.1-0.20220521082930-97420d4c6565 h1:hEgP/E7iXrK8KP/CWPCcSfLGApphJPuiWVDx0sgxRsI=
 github.com/vito/bass v0.5.1-0.20220521082930-97420d4c6565/go.mod h1:sogWUOXPgK5SXJxqijNAnioFTh2CtM7DbHkFRs+yHog=
+github.com/vito/bass v0.5.1-0.20220521224637-a7589ec8e117 h1:oBg+XKaur1z3U3fPpAmrlLGa31MVUje4hYw+qAPG6Oc=
+github.com/vito/bass v0.5.1-0.20220521224637-a7589ec8e117/go.mod h1:sogWUOXPgK5SXJxqijNAnioFTh2CtM7DbHkFRs+yHog=
 github.com/vito/invaders v0.0.2 h1:igc2c3fm89va6Qle9cEzKmFthYTeHse4Gnz6GWIlnpk=
 github.com/vito/invaders v0.0.2/go.mod h1:Pi5WKkYw/ru9Jm9VD2PXOuorZ86bx1BdNdEn35srCWk=
 github.com/vito/is v0.0.5 h1:Rkpwa1eZ372A4DFq92xblSkTm0X7aNUgEQ5fuM/RNK0=
