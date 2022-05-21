@@ -21,6 +21,8 @@ var flags = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 var httpAddr string
 var sshAddr string
 
+var sqliteDSN string
+
 var githubWebURL string
 var githubV3APIURL string
 var githubAppID int64
@@ -39,6 +41,8 @@ func init() {
 
 	flags.StringVar(&httpAddr, "http", "0.0.0.0:8080", "address on which to listen for HTTP traffic")
 	flags.StringVar(&sshAddr, "ssh", "0.0.0.0:6455", "address on which to listen for SSH traffic")
+
+	flags.StringVar(&sqliteDSN, "sqlite", "loop.db?mode=rwc", "sqlite datasource string")
 
 	flags.Int64Var(&githubAppID, "github-app-id", 0, "GitHub app ID")
 	flags.StringVar(&githubAppPrivateKey, "github-app-key", "", "path to GitHub app private key")
