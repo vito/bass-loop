@@ -22,6 +22,7 @@ require (
 	github.com/c-bata/go-prompt v0.2.6 // indirect
 	github.com/charmbracelet/bubbles v0.9.0 // indirect
 	github.com/charmbracelet/bubbletea v0.19.4-0.20220214222051-4d1d1ee02190 // indirect
+	github.com/clarafu/envstruct v0.0.0-20210414180622-62f3047362cf // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/containerd v1.6.1 // indirect
 	github.com/containerd/continuity v0.2.2 // indirect

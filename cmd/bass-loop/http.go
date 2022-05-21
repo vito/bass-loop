@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/bradleyfalzon/ghinstallation"
@@ -39,26 +38,13 @@ func httpServe(ctx context.Context) error {
 
 		mux := http.NewServeMux()
 
-		if githubAppID != 0 {
-			var keyContent []byte
-			if githubAppPrivateKey != "" {
-				var err error
-				keyContent, err = os.ReadFile(githubAppPrivateKey)
-				if err != nil {
-					return err
-				}
-			} else if keyContentStr, ok := os.LookupEnv("GITHUB_APP_PRIVATE_KEY"); ok {
-				keyContent = []byte(keyContentStr)
-			} else {
-				logger.Fatal("missing --github-app-key path/to/key or $GITHUB_APP_PRIVATE_KEY")
+		if config.GitHubApp.ID != 0 {
+			keyContent, err := config.GitHubApp.PrivateKey()
+			if err != nil {
+				return err
 			}
 
-			webhookSecret := githubAppWebhookSecret
-			if secret, ok := os.LookupEnv("GITHUB_APP_WEBHOOK_SECRET"); ok {
-				webhookSecret = secret
-			}
-
-			appsTransport, err := ghinstallation.NewAppsTransport(nil, githubAppID, keyContent)
+			appsTransport, err := ghinstallation.NewAppsTransport(http.DefaultTransport, config.GitHubApp.ID, keyContent)
 			if err != nil {
 				return err
 			}
@@ -66,13 +52,13 @@ func httpServe(ctx context.Context) error {
 			mux.Handle("/api/github/hook", &GithubHandler{
 				RunCtx:        ctx,
 				AppsTransport: appsTransport,
-				WebhookSecret: webhookSecret,
+				WebhookSecret: config.GitHubApp.WebhookSecret,
 				Dispatches:    dispatches,
 			})
 		}
 
 		server := &http.Server{
-			Addr:    httpAddr,
+			Addr:    config.HTTPAddr,
 			Handler: http.MaxBytesHandler(mux, MaxBytes),
 			BaseContext: func(net.Listener) context.Context {
 				return ctx
@@ -90,7 +76,7 @@ func httpServe(ctx context.Context) error {
 
 		logger.Info("listening",
 			zap.String("protocol", "http"),
-			zap.String("addr", httpAddr))
+			zap.String("addr", config.HTTPAddr))
 
 		return server.ListenAndServe()
 	})

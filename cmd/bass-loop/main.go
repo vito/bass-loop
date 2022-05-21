@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/clarafu/envstruct"
 	flag "github.com/spf13/pflag"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
@@ -18,38 +20,56 @@ import (
 
 var flags = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-var httpAddr string
-var sshAddr string
+var showHelp, showVersion bool
 
-var sqliteDSN string
+type Config struct {
+	HTTPAddr string `env:"HTTP_ADDR"`
+	SSHAddr  string `env:"SSH_ADDR"`
 
-var githubWebURL string
-var githubV3APIURL string
-var githubAppID int64
-var githubAppPrivateKey string
-var githubAppWebhookSecret string
+	SQLiteDSN string `env:"SQLITE_DSN"`
 
-var profPort int
-var profFilePath string
+	GitHubApp GithubAppConfig `env:"GITHUB_APP"`
 
-var showHelp bool
-var showVersion bool
+	Prof struct {
+		Port     int    `env:"PORT"`
+		FilePath string `env:"FILE_PATH"`
+	} `env:"CPU_PROF"`
+}
+
+type GithubAppConfig struct {
+	ID                int64  `env:"ID"`
+	PrivateKeyPath    string `env:"PRIVATE_KEY_PATH"`
+	PrivateKeyContent string `env:"PRIVATE_KEY"`
+	WebhookSecret     string `env:"WEBHOOK_SECRET"`
+}
+
+func (config GithubAppConfig) PrivateKey() ([]byte, error) {
+	if config.PrivateKeyPath != "" {
+		return os.ReadFile(config.PrivateKeyPath)
+	} else if config.PrivateKeyContent != "" {
+		return []byte(config.PrivateKeyContent), nil
+	} else {
+		return nil, fmt.Errorf("missing GitHub app private key")
+	}
+}
+
+var config Config
 
 func init() {
 	flags.SetOutput(os.Stdout)
 	flags.SortFlags = false
 
-	flags.StringVar(&httpAddr, "http", "0.0.0.0:8080", "address on which to listen for HTTP traffic")
-	flags.StringVar(&sshAddr, "ssh", "0.0.0.0:6455", "address on which to listen for SSH traffic")
+	flags.StringVar(&config.HTTPAddr, "http", "0.0.0.0:8080", "address on which to listen for HTTP traffic")
+	flags.StringVar(&config.SSHAddr, "ssh", "0.0.0.0:6455", "address on which to listen for SSH traffic")
 
-	flags.StringVar(&sqliteDSN, "sqlite", "loop.db?mode=rwc", "sqlite datasource string")
+	flags.StringVar(&config.SQLiteDSN, "sqlite", "loop.db?mode=rwc", "sqlite datasource string")
 
-	flags.Int64Var(&githubAppID, "github-app-id", 0, "GitHub app ID")
-	flags.StringVar(&githubAppPrivateKey, "github-app-key", "", "path to GitHub app private key")
-	flags.StringVar(&githubAppWebhookSecret, "github-app-webhook-secret", "", "secret to verify for GitHub app webhook payloads")
+	flags.Int64Var(&config.GitHubApp.ID, "github-app-id", 0, "GitHub app ID")
+	flags.StringVar(&config.GitHubApp.PrivateKeyPath, "github-app-key", "", "path to GitHub app private key")
+	flags.StringVar(&config.GitHubApp.WebhookSecret, "github-app-webhook-secret", "", "secret to verify for GitHub app webhook payloads")
 
-	flags.IntVar(&profPort, "profile", 0, "port number to bind for Go HTTP profiling")
-	flags.StringVar(&profFilePath, "cpu-profile", "", "take a CPU profile and save it to this path")
+	flags.IntVar(&config.Prof.Port, "profile", 0, "port number to bind for Go HTTP profiling")
+	flags.StringVar(&config.Prof.FilePath, "cpu-profile", "", "take a CPU profile and save it to this path")
 
 	flags.BoolVarP(&showVersion, "version", "v", false, "print the version number and exit")
 	flags.BoolVarP(&showHelp, "help", "h", false, "show bass usage and exit")
@@ -71,6 +91,29 @@ func main() {
 		return
 	}
 
+	err = envstruct.Envstruct{
+		TagName: "env",
+		Parser: envstruct.Parser{
+			Delimiter: ",",
+			Unmarshaler: func(p []byte, dest interface{}) error {
+				switch x := dest.(type) {
+				case *string:
+					*x = string(p)
+					return nil
+				case *int, *int32, *int64, *uint, *uint32, *uint64:
+					return json.Unmarshal(p, dest)
+				default:
+					return fmt.Errorf("cannot decode env value into %T", dest)
+				}
+			},
+		},
+	}.FetchEnv(&config)
+	if err != nil {
+		cli.WriteError(ctx, err)
+		os.Exit(2)
+		return
+	}
+
 	err = root(ctx)
 	if err != nil {
 		os.Exit(1)
@@ -88,10 +131,10 @@ func root(ctx context.Context) error {
 		return nil
 	}
 
-	if profPort != 0 {
-		zapctx.FromContext(ctx).Sugar().Debugf("serving pprof on :%d", profPort)
+	if config.Prof.Port != 0 {
+		zapctx.FromContext(ctx).Sugar().Debugf("serving pprof on :%d", config.Prof.Port)
 
-		l, err := net.Listen("tcp", fmt.Sprintf(":%d", profPort))
+		l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.Prof.Port))
 		if err != nil {
 			cli.WriteError(ctx, err)
 			return err
@@ -100,8 +143,8 @@ func root(ctx context.Context) error {
 		go http.Serve(l, nil)
 	}
 
-	if profFilePath != "" {
-		profFile, err := os.Create(profFilePath)
+	if config.Prof.FilePath != "" {
+		profFile, err := os.Create(config.Prof.FilePath)
 		if err != nil {
 			cli.WriteError(ctx, err)
 			return err
