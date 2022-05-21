@@ -52,3 +52,6 @@ go.work.sum
 
 # go profiling
 *.prof
+
+# sqlite databases
+*.db

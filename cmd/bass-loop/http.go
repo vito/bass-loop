@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -30,7 +31,7 @@ import (
 // prevent DoS attacks.
 const MaxBytes = 25 * 1024 * 1024
 
-func httpServe(ctx context.Context) error {
+func httpServe(ctx context.Context, db *sql.DB) error {
 	return withProgress(ctx, "loop", func(ctx context.Context, vertex *progrock.VertexRecorder) error {
 		logger := zapctx.FromContext(ctx)
 
@@ -50,6 +51,7 @@ func httpServe(ctx context.Context) error {
 			}
 
 			mux.Handle("/api/github/hook", &GithubHandler{
+				DB:            db,
 				RunCtx:        ctx,
 				AppsTransport: appsTransport,
 				WebhookSecret: config.GitHubApp.WebhookSecret,
@@ -83,6 +85,7 @@ func httpServe(ctx context.Context) error {
 }
 
 type GithubHandler struct {
+	DB            *sql.DB
 	RunCtx        context.Context
 	WebhookSecret string
 	AppsTransport *ghinstallation.AppsTransport
@@ -174,6 +177,7 @@ func (h *GithubHandler) dispatch(ctx context.Context, instID int64, user, repo s
 
 	ghscope.Set("start-check",
 		bass.Func("start-check", "[thunk name sha]", func(ctx context.Context, thunk bass.Thunk, name, sha string) (bass.Combiner, error) {
+			thunk.SHA256()
 			run, _, err := client.Checks.CreateCheckRun(ctx, user, repo, github.CreateCheckRunOptions{
 				Name:      name,
 				HeadSHA:   sha,

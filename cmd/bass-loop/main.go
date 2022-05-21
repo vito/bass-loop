@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -10,17 +11,19 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
+	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/clarafu/envstruct"
 	flag "github.com/spf13/pflag"
+	"github.com/vito/bass-loop/migrations"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
 	"github.com/vito/bass/pkg/ioctx"
 	"github.com/vito/bass/pkg/zapctx"
 )
-
-var flags = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-
-var showHelp, showVersion bool
 
 type Config struct {
 	HTTPAddr string `env:"HTTP_ADDR"`
@@ -54,6 +57,10 @@ func (config GithubAppConfig) PrivateKey() ([]byte, error) {
 }
 
 var config Config
+
+var flags = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+
+var showHelp, showVersion bool
 
 func init() {
 	flags.SetOutput(os.Stdout)
@@ -116,6 +123,7 @@ func main() {
 
 	err = root(ctx)
 	if err != nil {
+		cli.WriteError(ctx, err)
 		os.Exit(1)
 	}
 }
@@ -136,7 +144,6 @@ func root(ctx context.Context) error {
 
 		l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.Prof.Port))
 		if err != nil {
-			cli.WriteError(ctx, err)
 			return err
 		}
 
@@ -146,7 +153,6 @@ func root(ctx context.Context) error {
 	if config.Prof.FilePath != "" {
 		profFile, err := os.Create(config.Prof.FilePath)
 		if err != nil {
-			cli.WriteError(ctx, err)
 			return err
 		}
 
@@ -156,5 +162,40 @@ func root(ctx context.Context) error {
 		defer pprof.StopCPUProfile()
 	}
 
-	return httpServe(ctx)
+	db, err := openDB()
+	if err != nil {
+		return err
+	}
+
+	return httpServe(ctx, db)
+}
+
+func openDB() (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", config.SQLiteDSN)
+	if err != nil {
+		return nil, fmt.Errorf("open sqlite3: %w", err)
+	}
+
+	defer db.Close()
+
+	instance, err := sqlite3.WithInstance(db, &sqlite3.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("sqlite3 instance: %w", err)
+	}
+
+	migrationsSrc, err := iofs.New(migrations.FS, ".")
+	if err != nil {
+		return nil, fmt.Errorf("migrations fs: %w", err)
+	}
+
+	m, err := migrate.NewWithInstance("fs", migrationsSrc, "sqlite3", instance)
+	if err != nil {
+		return nil, fmt.Errorf("setup migrate: %w", err)
+	}
+
+	if err := m.Up(); err != nil {
+		return nil, fmt.Errorf("migrate: %w", err)
+	}
+
+	return nil, nil
 }
