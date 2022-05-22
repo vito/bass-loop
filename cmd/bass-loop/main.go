@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -167,6 +168,8 @@ func root(ctx context.Context) error {
 		return err
 	}
 
+	defer db.Close()
+
 	return httpServe(ctx, db)
 }
 
@@ -175,8 +178,6 @@ func openDB() (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite3: %w", err)
 	}
-
-	defer db.Close()
 
 	instance, err := sqlite3.WithInstance(db, &sqlite3.Config{})
 	if err != nil {
@@ -193,9 +194,9 @@ func openDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("setup migrate: %w", err)
 	}
 
-	if err := m.Up(); err != nil {
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
 
-	return nil, nil
+	return db, nil
 }

@@ -18,6 +18,8 @@ import (
 	"github.com/vito/progrock"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/vito/bass-loop/pkg/models"
 )
 
 // MaxBytes is the maximum size of a request payload.
@@ -177,7 +179,11 @@ func (h *GithubHandler) dispatch(ctx context.Context, instID int64, user, repo s
 
 	ghscope.Set("start-check",
 		bass.Func("start-check", "[thunk name sha]", func(ctx context.Context, thunk bass.Thunk, name, sha string) (bass.Combiner, error) {
-			thunk.SHA256()
+			thunkRun, err := models.CreateThunkRun(ctx, h.DB, thunk)
+			if err != nil {
+				return nil, fmt.Errorf("create thunk run: %w", err)
+			}
+
 			run, _, err := client.Checks.CreateCheckRun(ctx, user, repo, github.CreateCheckRunOptions{
 				Name:      name,
 				HeadSHA:   sha,
@@ -189,20 +195,35 @@ func (h *GithubHandler) dispatch(ctx context.Context, instID int64, user, repo s
 			}
 
 			return thunk.Start(ctx, bass.Func("handler", "[ok?]", func(ctx context.Context, ok bool) error {
+				completedAt := time.Now()
+
+				thunkRun.EndTime = sql.NullInt64{
+					Int64: completedAt.Unix(),
+					Valid: true,
+				}
+
 				var conclusion string
 				if ok {
+					thunkRun.Succeeded = sql.NullInt64{Int64: 1, Valid: true}
 					conclusion = "success"
 				} else if ctx.Err() != nil {
+					thunkRun.Succeeded = sql.NullInt64{Int64: 0, Valid: true}
 					conclusion = "cancelled"
 				} else {
+					thunkRun.Succeeded = sql.NullInt64{Int64: 0, Valid: true}
 					conclusion = "failure"
+				}
+
+				err = thunkRun.Update(ctx, h.DB)
+				if err != nil {
+					return fmt.Errorf("update thunk run: %w", err)
 				}
 
 				_, _, err := client.Checks.UpdateCheckRun(ctx, user, repo, run.GetID(), github.UpdateCheckRunOptions{
 					Name:        name,
 					Status:      github.String("completed"),
 					Conclusion:  github.String(conclusion),
-					CompletedAt: &github.Timestamp{Time: time.Now()},
+					CompletedAt: &github.Timestamp{Time: completedAt},
 				})
 				if err != nil {
 					return fmt.Errorf("update check run: %w", err)

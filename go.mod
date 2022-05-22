@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/clarafu/envstruct v0.0.0-20210414180622-62f3047362cf
-	github.com/golang-migrate/migrate v3.5.4+incompatible
+	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/google/go-github/v43 v43.0.0
 	github.com/mattn/go-sqlite3 v1.14.13

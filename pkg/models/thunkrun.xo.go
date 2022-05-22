@@ -9,12 +9,11 @@ import (
 
 // ThunkRun represents a row from 'thunk_runs'.
 type ThunkRun struct {
-	ID          sql.NullInt64  `json:"id"`           // id
-	ThunkSha256 string         `json:"thunk_sha256"` // thunk_sha256
-	UserNodeID  string         `json:"user_node_id"` // user_node_id
-	StartTime   int            `json:"start_time"`   // start_time
-	EndTime     sql.NullInt64  `json:"end_time"`     // end_time
-	Error       sql.NullString `json:"error"`        // error
+	ID          string        `json:"id"`           // id
+	ThunkSha256 string        `json:"thunk_sha256"` // thunk_sha256
+	StartTime   int           `json:"start_time"`   // start_time
+	EndTime     sql.NullInt64 `json:"end_time"`     // end_time
+	Succeeded   sql.NullInt64 `json:"succeeded"`    // succeeded
 	// xo fields
 	_exists, _deleted bool
 }
@@ -40,13 +39,13 @@ func (tr *ThunkRun) Insert(ctx context.Context, db DB) error {
 	}
 	// insert (manual)
 	const sqlstr = `INSERT INTO thunk_runs (` +
-		`id, thunk_sha256, user_node_id, start_time, end_time, error` +
+		`id, thunk_sha256, start_time, end_time, succeeded` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6` +
+		`$1, $2, $3, $4, $5` +
 		`)`
 	// run
-	logf(sqlstr, tr.ID, tr.ThunkSha256, tr.UserNodeID, tr.StartTime, tr.EndTime, tr.Error)
-	if _, err := db.ExecContext(ctx, sqlstr, tr.ID, tr.ThunkSha256, tr.UserNodeID, tr.StartTime, tr.EndTime, tr.Error); err != nil {
+	logf(sqlstr, tr.ID, tr.ThunkSha256, tr.StartTime, tr.EndTime, tr.Succeeded)
+	if _, err := db.ExecContext(ctx, sqlstr, tr.ID, tr.ThunkSha256, tr.StartTime, tr.EndTime, tr.Succeeded); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -64,11 +63,11 @@ func (tr *ThunkRun) Update(ctx context.Context, db DB) error {
 	}
 	// update with primary key
 	const sqlstr = `UPDATE thunk_runs SET ` +
-		`thunk_sha256 = $1, user_node_id = $2, start_time = $3, end_time = $4, error = $5 ` +
-		`WHERE id = $6`
+		`thunk_sha256 = $1, start_time = $2, end_time = $3, succeeded = $4 ` +
+		`WHERE id = $5`
 	// run
-	logf(sqlstr, tr.ThunkSha256, tr.UserNodeID, tr.StartTime, tr.EndTime, tr.Error, tr.ID)
-	if _, err := db.ExecContext(ctx, sqlstr, tr.ThunkSha256, tr.UserNodeID, tr.StartTime, tr.EndTime, tr.Error, tr.ID); err != nil {
+	logf(sqlstr, tr.ThunkSha256, tr.StartTime, tr.EndTime, tr.Succeeded, tr.ID)
+	if _, err := db.ExecContext(ctx, sqlstr, tr.ThunkSha256, tr.StartTime, tr.EndTime, tr.Succeeded, tr.ID); err != nil {
 		return logerror(err)
 	}
 	return nil
@@ -90,16 +89,16 @@ func (tr *ThunkRun) Upsert(ctx context.Context, db DB) error {
 	}
 	// upsert
 	const sqlstr = `INSERT INTO thunk_runs (` +
-		`id, thunk_sha256, user_node_id, start_time, end_time, error` +
+		`id, thunk_sha256, start_time, end_time, succeeded` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6` +
+		`$1, $2, $3, $4, $5` +
 		`)` +
 		` ON CONFLICT (id) DO ` +
 		`UPDATE SET ` +
-		`thunk_sha256 = EXCLUDED.thunk_sha256, user_node_id = EXCLUDED.user_node_id, start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time, error = EXCLUDED.error `
+		`thunk_sha256 = EXCLUDED.thunk_sha256, start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time, succeeded = EXCLUDED.succeeded `
 	// run
-	logf(sqlstr, tr.ID, tr.ThunkSha256, tr.UserNodeID, tr.StartTime, tr.EndTime, tr.Error)
-	if _, err := db.ExecContext(ctx, sqlstr, tr.ID, tr.ThunkSha256, tr.UserNodeID, tr.StartTime, tr.EndTime, tr.Error); err != nil {
+	logf(sqlstr, tr.ID, tr.ThunkSha256, tr.StartTime, tr.EndTime, tr.Succeeded)
+	if _, err := db.ExecContext(ctx, sqlstr, tr.ID, tr.ThunkSha256, tr.StartTime, tr.EndTime, tr.Succeeded); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -134,7 +133,7 @@ func (tr *ThunkRun) Delete(ctx context.Context, db DB) error {
 func ThunkRunsByThunkSha256(ctx context.Context, db DB, thunkSha256 string) ([]*ThunkRun, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`id, thunk_sha256, user_node_id, start_time, end_time, error ` +
+		`id, thunk_sha256, start_time, end_time, succeeded ` +
 		`FROM thunk_runs ` +
 		`WHERE thunk_sha256 = $1`
 	// run
@@ -151,7 +150,7 @@ func ThunkRunsByThunkSha256(ctx context.Context, db DB, thunkSha256 string) ([]*
 			_exists: true,
 		}
 		// scan
-		if err := rows.Scan(&tr.ID, &tr.ThunkSha256, &tr.UserNodeID, &tr.StartTime, &tr.EndTime, &tr.Error); err != nil {
+		if err := rows.Scan(&tr.ID, &tr.ThunkSha256, &tr.StartTime, &tr.EndTime, &tr.Succeeded); err != nil {
 			return nil, logerror(err)
 		}
 		res = append(res, &tr)
@@ -164,11 +163,11 @@ func ThunkRunsByThunkSha256(ctx context.Context, db DB, thunkSha256 string) ([]*
 
 // ThunkRunByID retrieves a row from 'thunk_runs' as a ThunkRun.
 //
-// Generated from index 'thunk_runs_id_pkey'.
-func ThunkRunByID(ctx context.Context, db DB, id sql.NullInt64) (*ThunkRun, error) {
+// Generated from index 'sqlite_autoindex_thunk_runs_1'.
+func ThunkRunByID(ctx context.Context, db DB, id string) (*ThunkRun, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`id, thunk_sha256, user_node_id, start_time, end_time, error ` +
+		`id, thunk_sha256, start_time, end_time, succeeded ` +
 		`FROM thunk_runs ` +
 		`WHERE id = $1`
 	// run
@@ -176,7 +175,7 @@ func ThunkRunByID(ctx context.Context, db DB, id sql.NullInt64) (*ThunkRun, erro
 	tr := ThunkRun{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&tr.ID, &tr.ThunkSha256, &tr.UserNodeID, &tr.StartTime, &tr.EndTime, &tr.Error); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&tr.ID, &tr.ThunkSha256, &tr.StartTime, &tr.EndTime, &tr.Succeeded); err != nil {
 		return nil, logerror(err)
 	}
 	return &tr, nil
@@ -187,11 +186,4 @@ func ThunkRunByID(ctx context.Context, db DB, id sql.NullInt64) (*ThunkRun, erro
 // Generated from foreign key 'thunk_runs_thunk_sha256_fkey'.
 func (tr *ThunkRun) Thunk(ctx context.Context, db DB) (*Thunk, error) {
 	return ThunkBySha256(ctx, db, tr.ThunkSha256)
-}
-
-// User returns the User associated with the ThunkRun's (UserNodeID).
-//
-// Generated from foreign key 'thunk_runs_user_node_id_fkey'.
-func (tr *ThunkRun) User(ctx context.Context, db DB) (*User, error) {
-	return UserByNodeID(ctx, db, tr.UserNodeID)
 }
