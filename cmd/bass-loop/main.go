@@ -12,10 +12,18 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/adrg/xdg"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/mattn/go-sqlite3"
+	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/azureblob"
+	"gocloud.dev/blob/fileblob"
+	_ "gocloud.dev/blob/fileblob"
+	_ "gocloud.dev/blob/gcsblob"
+	_ "gocloud.dev/blob/memblob"
+	_ "gocloud.dev/blob/s3blob"
 
 	"github.com/clarafu/envstruct"
 	flag "github.com/spf13/pflag"
@@ -30,7 +38,8 @@ type Config struct {
 	HTTPAddr string `env:"HTTP_ADDR"`
 	SSHAddr  string `env:"SSH_ADDR"`
 
-	SQLiteDSN string `env:"SQLITE_DSN"`
+	SQLitePath  string `env:"SQLITE_PATH"`
+	BlobsBucket string `env:"BLOBS_BUCKET"`
 
 	GitHubApp GithubAppConfig `env:"GITHUB_APP"`
 
@@ -70,7 +79,11 @@ func init() {
 	flags.StringVar(&config.HTTPAddr, "http", "0.0.0.0:8080", "address on which to listen for HTTP traffic")
 	flags.StringVar(&config.SSHAddr, "ssh", "0.0.0.0:6455", "address on which to listen for SSH traffic")
 
-	flags.StringVar(&config.SQLiteDSN, "sqlite", "loop.db?mode=rwc", "sqlite datasource string")
+	// this is a path, not a DSN; don't want to expose that level of complexity
+	// unless we need to. would rather make sure we're tracking a correct default
+	flags.StringVar(&config.SQLitePath, "sqlite", "", `SQLite database path (default "$XDG_DATA_HOME/bass-loop/loop.db")`)
+
+	flags.StringVar(&config.BlobsBucket, "blobs", "", `Blobstore URL for storing logs and other data (default "file://$XDG_DATA_HOME/bass-loop/blobs")`)
 
 	flags.Int64Var(&config.GitHubApp.ID, "github-app-id", 0, "GitHub app ID")
 	flags.StringVar(&config.GitHubApp.PrivateKeyPath, "github-app-key", "", "path to GitHub app private key")
@@ -170,11 +183,37 @@ func root(ctx context.Context) error {
 
 	defer db.Close()
 
-	return httpServe(ctx, db)
+	var logs *blob.Bucket
+	if config.BlobsBucket != "" {
+		logs, err = blob.OpenBucket(ctx, config.BlobsBucket)
+	} else {
+		localBlobs, err := xdg.DataFile("bass-loop/blobs")
+		if err != nil {
+			return fmt.Errorf("xdg: %w", err)
+		}
+
+		logs, err = fileblob.OpenBucket(localBlobs, &fileblob.Options{
+			CreateDir: true,
+		})
+	}
+	if err != nil {
+		return fmt.Errorf("open logs bucket: %w", err)
+	}
+
+	return httpServe(ctx, db, logs)
 }
 
 func openDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", config.SQLiteDSN)
+	if config.SQLitePath == "" {
+		defaultPath, err := xdg.DataFile("bass-loop/loop.db")
+		if err != nil {
+			return nil, fmt.Errorf("xdg: %w", err)
+		}
+
+		config.SQLitePath = defaultPath
+	}
+
+	db, err := sql.Open("sqlite3", config.SQLitePath+"?cache=shared&mode=rwc&_busy_timeout=10000")
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite3: %w", err)
 	}

@@ -6,7 +6,6 @@ CREATE TABLE vertexes (
   start_time INTEGER NULL,
   end_time INTEGER NULL,
   error TEXT NULL,
-  logs BLOB NULL,
   PRIMARY KEY (run_id, digest),
 
   FOREIGN KEY (run_id) REFERENCES runs (id) ON DELETE CASCADE

@@ -13,6 +13,7 @@ import (
 	"github.com/vito/bass/pkg/zapctx"
 	"github.com/vito/progrock"
 	"go.uber.org/zap"
+	"gocloud.dev/blob"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -27,7 +28,7 @@ import (
 // prevent DoS attacks.
 const MaxBytes = 25 * 1024 * 1024
 
-func httpServe(ctx context.Context, db *sql.DB) error {
+func httpServe(ctx context.Context, db *sql.DB, logs *blob.Bucket) error {
 	return withProgress(ctx, "loop", func(ctx context.Context, vertex *progrock.VertexRecorder) error {
 		logger := zapctx.FromContext(ctx)
 
@@ -51,6 +52,7 @@ func httpServe(ctx context.Context, db *sql.DB) error {
 
 			router.Handler("POST", "/api/github/hook", &github.WebhookHandler{
 				DB:            db,
+				Logs:          logs,
 				RunCtx:        ctx,
 				AppsTransport: appsTransport,
 				WebhookSecret: config.GitHubApp.WebhookSecret,

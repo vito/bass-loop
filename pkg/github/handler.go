@@ -1,13 +1,18 @@
 package github
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
+	"path"
 	"time"
 
+	"github.com/aoldershaw/ansi"
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/v43/github"
 	"github.com/vito/bass-loop/pkg/models"
@@ -17,6 +22,7 @@ import (
 	"github.com/vito/bass/pkg/zapctx"
 	"github.com/vito/progrock"
 	"go.uber.org/zap"
+	"gocloud.dev/blob"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -31,6 +37,7 @@ var defaultConfigTODO = bass.Config{
 
 type WebhookHandler struct {
 	DB            *sql.DB
+	Logs          *blob.Bucket
 	RunCtx        context.Context
 	WebhookSecret string
 	AppsTransport *ghinstallation.AppsTransport
@@ -119,6 +126,7 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, user, repo 
 		GH: github.NewClient(&http.Client{
 			Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),
 		}),
+		Logs: h.Logs,
 		User: user,
 		Repo: repo,
 	}.Scope())
@@ -157,6 +165,7 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, user, repo 
 
 type BassGitHubClient struct {
 	DB         *sql.DB
+	Logs       *blob.Bucket
 	GH         *github.Client
 	User, Repo string
 }
@@ -195,7 +204,7 @@ func (client BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk,
 	progress := cli.NewProgress()
 	thunkCtx := progrock.RecorderToContext(ctx, progrock.NewRecorder(progress))
 
-	return thunk.Start(thunkCtx, bass.Func("handler", "[ok?]", func(ctx context.Context, ok bool) error {
+	complete := func(ctx context.Context, ok bool) error {
 		completedAt := time.Now()
 
 		thunkRun.EndTime = sql.NullInt64{
@@ -237,6 +246,29 @@ func (client BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk,
 				cached = 1
 			}
 
+			htmlBuf := new(bytes.Buffer)
+			if v.Log.Len() > 0 {
+				if err := client.Logs.WriteAll(ctx, path.Join(v.Digest.Encoded(), thunkRun.ID), v.Log.Bytes(), nil); err != nil {
+					return fmt.Errorf("store raw logs: %w", err)
+				}
+
+				var lines ansi.Lines
+				writer := ansi.NewWriter(&lines,
+					// arbitrary, matched my screen
+					ansi.WithInitialScreenSize(67, 316))
+				if _, err := writer.Write(v.Log.Bytes()); err != nil {
+					return fmt.Errorf("write log: %w", err)
+				}
+
+				if err := ANSIHTML.Execute(htmlBuf, lines); err != nil {
+					return fmt.Errorf("render html: %w", err)
+				}
+
+				if err := client.Logs.WriteAll(ctx, path.Join(v.Digest.Encoded(), thunkRun.ID+".html"), htmlBuf.Bytes(), nil); err != nil {
+					return fmt.Errorf("store html logs: %w", err)
+				}
+			}
+
 			vtx := models.Vertex{
 				Digest:    v.Digest.String(),
 				RunID:     thunkRun.ID,
@@ -245,12 +277,9 @@ func (client BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk,
 				EndTime:   endTime,
 				Error:     vErr,
 				Cached:    cached,
-				Logs:      v.Log.Bytes(),
 			}
-
-			err := vtx.Save(ctx, client.DB)
-			if err != nil {
-				return err
+			if err := vtx.Save(ctx, client.DB); err != nil {
+				return fmt.Errorf("save vertex: %w", err)
 			}
 
 			for _, input := range v.Inputs {
@@ -259,22 +288,24 @@ func (client BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk,
 					TargetDigest: v.Digest.String(),
 				}
 
-				err := edge.Insert(ctx, client.DB)
-				if err != nil {
-					logger.Warn("insert edge", zap.Error(err))
+				_, err := models.VertexEdgeBySourceDigestTargetDigest(ctx, client.DB, edge.SourceDigest, edge.TargetDigest)
+				if err != nil && errors.Is(err, sql.ErrNoRows) {
+					// this could conflict with another edge, but that's ok; we just do
+					// the above check to make the logs less noisy
+					if err := edge.Insert(ctx, client.DB); err != nil {
+						logger.Warn("insert edge", zap.Error(err))
+					}
 				}
 			}
 
 			return nil
 		})
 		if err != nil {
-			cli.WriteError(ctx, err)
 			return fmt.Errorf("store vertex logs: %w", err)
 		}
 
 		err = thunkRun.Update(ctx, client.DB)
 		if err != nil {
-			cli.WriteError(ctx, err)
 			return fmt.Errorf("update thunk run: %w", err)
 		}
 
@@ -285,10 +316,34 @@ func (client BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk,
 			CompletedAt: &github.Timestamp{Time: completedAt},
 		})
 		if err != nil {
-			cli.WriteError(ctx, err)
 			return fmt.Errorf("update check run: %w", err)
 		}
 
 		return nil
+	}
+
+	return thunk.Start(thunkCtx, bass.Func("handler", "[ok?]", func(ctx context.Context, ok bool) error {
+		err := complete(ctx, ok)
+		if err != nil {
+			cli.WriteError(ctx, err)
+		}
+
+		return err
 	}))
 }
+
+// TODO: support modifiers (bold/etc) - it's a bit tricky, may need changes
+// upstream
+var ANSIHTML = template.Must(template.New("ansi").Parse(`{{- range . -}}
+	<span class="ansi-line">
+		{{- range . -}}
+		{{- if or .Style.Foreground .Style.Background .Style.Modifier -}}
+			<span class="{{with .Style.Foreground}}fg-{{.}}{{end}}{{with .Style.Background}} bg-{{.}}{{end}}">
+				{{- printf "%s" .Data -}}
+			</span>
+		{{- else -}}
+			{{- printf "%s" .Data -}}
+		{{- end -}}
+		{{- end -}}
+	</span>
+{{end}}`))

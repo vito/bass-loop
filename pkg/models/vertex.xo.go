@@ -16,7 +16,6 @@ type Vertex struct {
 	StartTime sql.NullInt64  `json:"start_time"` // start_time
 	EndTime   sql.NullInt64  `json:"end_time"`   // end_time
 	Error     sql.NullString `json:"error"`      // error
-	Logs      []byte         `json:"logs"`       // logs
 	// xo fields
 	_exists, _deleted bool
 }
@@ -42,13 +41,13 @@ func (v *Vertex) Insert(ctx context.Context, db DB) error {
 	}
 	// insert (manual)
 	const sqlstr = `INSERT INTO vertexes (` +
-		`run_id, digest, name, cached, start_time, end_time, error, logs` +
+		`run_id, digest, name, cached, start_time, end_time, error` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7, $8` +
+		`$1, $2, $3, $4, $5, $6, $7` +
 		`)`
 	// run
-	logf(sqlstr, v.RunID, v.Digest, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error, v.Logs)
-	if _, err := db.ExecContext(ctx, sqlstr, v.RunID, v.Digest, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error, v.Logs); err != nil {
+	logf(sqlstr, v.RunID, v.Digest, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error)
+	if _, err := db.ExecContext(ctx, sqlstr, v.RunID, v.Digest, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -66,11 +65,11 @@ func (v *Vertex) Update(ctx context.Context, db DB) error {
 	}
 	// update with primary key
 	const sqlstr = `UPDATE vertexes SET ` +
-		`name = $1, cached = $2, start_time = $3, end_time = $4, error = $5, logs = $6 ` +
-		`WHERE run_id = $7 AND digest = $8`
+		`name = $1, cached = $2, start_time = $3, end_time = $4, error = $5 ` +
+		`WHERE run_id = $6 AND digest = $7`
 	// run
-	logf(sqlstr, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error, v.Logs, v.RunID, v.Digest)
-	if _, err := db.ExecContext(ctx, sqlstr, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error, v.Logs, v.RunID, v.Digest); err != nil {
+	logf(sqlstr, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error, v.RunID, v.Digest)
+	if _, err := db.ExecContext(ctx, sqlstr, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error, v.RunID, v.Digest); err != nil {
 		return logerror(err)
 	}
 	return nil
@@ -92,16 +91,16 @@ func (v *Vertex) Upsert(ctx context.Context, db DB) error {
 	}
 	// upsert
 	const sqlstr = `INSERT INTO vertexes (` +
-		`run_id, digest, name, cached, start_time, end_time, error, logs` +
+		`run_id, digest, name, cached, start_time, end_time, error` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7, $8` +
+		`$1, $2, $3, $4, $5, $6, $7` +
 		`)` +
 		` ON CONFLICT (run_id, digest) DO ` +
 		`UPDATE SET ` +
-		`name = EXCLUDED.name, cached = EXCLUDED.cached, start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time, error = EXCLUDED.error, logs = EXCLUDED.logs `
+		`name = EXCLUDED.name, cached = EXCLUDED.cached, start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time, error = EXCLUDED.error `
 	// run
-	logf(sqlstr, v.RunID, v.Digest, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error, v.Logs)
-	if _, err := db.ExecContext(ctx, sqlstr, v.RunID, v.Digest, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error, v.Logs); err != nil {
+	logf(sqlstr, v.RunID, v.Digest, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error)
+	if _, err := db.ExecContext(ctx, sqlstr, v.RunID, v.Digest, v.Name, v.Cached, v.StartTime, v.EndTime, v.Error); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -136,7 +135,7 @@ func (v *Vertex) Delete(ctx context.Context, db DB) error {
 func VertexesByRunID(ctx context.Context, db DB, runID string) ([]*Vertex, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`run_id, digest, name, cached, start_time, end_time, error, logs ` +
+		`run_id, digest, name, cached, start_time, end_time, error ` +
 		`FROM vertexes ` +
 		`WHERE run_id = $1`
 	// run
@@ -153,7 +152,7 @@ func VertexesByRunID(ctx context.Context, db DB, runID string) ([]*Vertex, error
 			_exists: true,
 		}
 		// scan
-		if err := rows.Scan(&v.RunID, &v.Digest, &v.Name, &v.Cached, &v.StartTime, &v.EndTime, &v.Error, &v.Logs); err != nil {
+		if err := rows.Scan(&v.RunID, &v.Digest, &v.Name, &v.Cached, &v.StartTime, &v.EndTime, &v.Error); err != nil {
 			return nil, logerror(err)
 		}
 		res = append(res, &v)
@@ -170,7 +169,7 @@ func VertexesByRunID(ctx context.Context, db DB, runID string) ([]*Vertex, error
 func VertexByRunIDDigest(ctx context.Context, db DB, runID, digest string) (*Vertex, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`run_id, digest, name, cached, start_time, end_time, error, logs ` +
+		`run_id, digest, name, cached, start_time, end_time, error ` +
 		`FROM vertexes ` +
 		`WHERE run_id = $1 AND digest = $2`
 	// run
@@ -178,7 +177,7 @@ func VertexByRunIDDigest(ctx context.Context, db DB, runID, digest string) (*Ver
 	v := Vertex{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, runID, digest).Scan(&v.RunID, &v.Digest, &v.Name, &v.Cached, &v.StartTime, &v.EndTime, &v.Error, &v.Logs); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, runID, digest).Scan(&v.RunID, &v.Digest, &v.Name, &v.Cached, &v.StartTime, &v.EndTime, &v.Error); err != nil {
 		return nil, logerror(err)
 	}
 	return &v, nil
