@@ -9,12 +9,13 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"path"
+	"net/url"
 	"time"
 
 	"github.com/aoldershaw/ansi"
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/v43/github"
+	"github.com/vito/bass-loop/pkg/blobs"
 	"github.com/vito/bass-loop/pkg/models"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
@@ -36,8 +37,9 @@ var defaultConfigTODO = bass.Config{
 }
 
 type WebhookHandler struct {
+	ExternalURL   *url.URL
 	DB            *sql.DB
-	Logs          *blob.Bucket
+	Blobs         *blob.Bucket
 	RunCtx        context.Context
 	WebhookSecret string
 	AppsTransport *ghinstallation.AppsTransport
@@ -121,15 +123,16 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, user, repo 
 	scope.Set("*delivery-id*", bass.String(deliveryID))
 	scope.Set("*event*", bass.String(eventType))
 	scope.Set("*payload*", payloadScope)
-	scope.Set("*github*", BassGitHubClient{
-		DB: h.DB,
+	scope.Set("*github*", (&BassGitHubClient{
+		ExternalURL: h.ExternalURL,
+		DB:          h.DB,
 		GH: github.NewClient(&http.Client{
 			Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),
 		}),
-		Logs: h.Logs,
-		User: user,
-		Repo: repo,
-	}.Scope())
+		Blobs: h.Blobs,
+		User:  user,
+		Repo:  repo,
+	}).Scope())
 
 	// TODO: db-backed pool that looks up user's workers
 	pool, err := runtimes.NewPool(&defaultConfigTODO)
@@ -164,13 +167,14 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, user, repo 
 }
 
 type BassGitHubClient struct {
-	DB         *sql.DB
-	Logs       *blob.Bucket
-	GH         *github.Client
-	User, Repo string
+	ExternalURL *url.URL
+	DB          *sql.DB
+	Blobs       *blob.Bucket
+	GH          *github.Client
+	User, Repo  string
 }
 
-func (client BassGitHubClient) Scope() *bass.Scope {
+func (client *BassGitHubClient) Scope() *bass.Scope {
 	ghscope := bass.NewEmptyScope()
 	ghscope.Set("start-check",
 		bass.Func("start-check", "[thunk name sha]", client.StartCheck))
@@ -178,24 +182,25 @@ func (client BassGitHubClient) Scope() *bass.Scope {
 	return ghscope
 }
 
-func (client BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk, name, sha string) (bass.Combiner, error) {
+func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk, name, sha string) (bass.Combiner, error) {
 	logger := zapctx.FromContext(ctx)
 
-	sha2, err := thunk.SHA256()
-	if err != nil {
-		return nil, err
-	}
-
-	thunkRun, err := models.CreateThunkRun(ctx, client.DB, sha2)
+	run, err := models.CreateThunkRun(ctx, client.DB, thunk)
 	if err != nil {
 		return nil, fmt.Errorf("create thunk run: %w", err)
 	}
 
-	run, _, err := client.GH.Checks.CreateCheckRun(ctx, client.User, client.Repo, github.CreateCheckRunOptions{
-		Name:      name,
-		HeadSHA:   sha,
-		Status:    github.String("in_progress"),
-		StartedAt: &github.Timestamp{Time: time.Now()},
+	detailsURL, err := client.ExternalURL.Parse("/runs/" + run.ID)
+	if err != nil {
+		return nil, fmt.Errorf("create thunk run: %w", err)
+	}
+
+	checkRun, _, err := client.GH.Checks.CreateCheckRun(ctx, client.User, client.Repo, github.CreateCheckRunOptions{
+		Name:       name,
+		HeadSHA:    sha,
+		Status:     github.String("in_progress"),
+		StartedAt:  &github.Timestamp{Time: time.Now()},
+		DetailsURL: github.String(detailsURL.String()),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create check run: %w", err)
@@ -207,20 +212,20 @@ func (client BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk,
 	complete := func(ctx context.Context, ok bool) error {
 		completedAt := time.Now()
 
-		thunkRun.EndTime = sql.NullInt64{
+		run.EndTime = sql.NullInt64{
 			Int64: completedAt.UnixNano(),
 			Valid: true,
 		}
 
 		var conclusion string
 		if ok {
-			thunkRun.Succeeded = sql.NullInt64{Int64: 1, Valid: true}
+			run.Succeeded = sql.NullInt64{Int64: 1, Valid: true}
 			conclusion = "success"
 		} else if ctx.Err() != nil {
-			thunkRun.Succeeded = sql.NullInt64{Int64: 0, Valid: true}
+			run.Succeeded = sql.NullInt64{Int64: 0, Valid: true}
 			conclusion = "cancelled"
 		} else {
-			thunkRun.Succeeded = sql.NullInt64{Int64: 0, Valid: true}
+			run.Succeeded = sql.NullInt64{Int64: 0, Valid: true}
 			conclusion = "failure"
 		}
 
@@ -246,9 +251,19 @@ func (client BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk,
 				cached = 1
 			}
 
+			vtx := &models.Vertex{
+				Digest:    v.Digest.String(),
+				RunID:     run.ID,
+				Name:      v.Name,
+				StartTime: startTime,
+				EndTime:   endTime,
+				Error:     vErr,
+				Cached:    cached,
+			}
+
 			htmlBuf := new(bytes.Buffer)
 			if v.Log.Len() > 0 {
-				if err := client.Logs.WriteAll(ctx, path.Join(v.Digest.Encoded(), thunkRun.ID), v.Log.Bytes(), nil); err != nil {
+				if err := client.Blobs.WriteAll(ctx, blobs.VertexRawLogKey(vtx), v.Log.Bytes(), nil); err != nil {
 					return fmt.Errorf("store raw logs: %w", err)
 				}
 
@@ -264,22 +279,20 @@ func (client BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk,
 					return fmt.Errorf("render html: %w", err)
 				}
 
-				if err := client.Logs.WriteAll(ctx, path.Join(v.Digest.Encoded(), thunkRun.ID+".html"), htmlBuf.Bytes(), nil); err != nil {
+				if err := client.Blobs.WriteAll(ctx, blobs.VertexHTMLLogKey(vtx), htmlBuf.Bytes(), nil); err != nil {
 					return fmt.Errorf("store html logs: %w", err)
 				}
 			}
 
-			vtx := models.Vertex{
-				Digest:    v.Digest.String(),
-				RunID:     thunkRun.ID,
-				Name:      v.Name,
-				StartTime: startTime,
-				EndTime:   endTime,
-				Error:     vErr,
-				Cached:    cached,
-			}
-			if err := vtx.Save(ctx, client.DB); err != nil {
-				return fmt.Errorf("save vertex: %w", err)
+			for {
+				if err := vtx.Save(ctx, client.DB); err != nil {
+					// TODO why is this happening so often even with retrying?
+					logger.Error("failed to save vertex", zap.Error(err))
+					time.Sleep(time.Second)
+					continue
+				}
+
+				break
 			}
 
 			for _, input := range v.Inputs {
@@ -304,12 +317,12 @@ func (client BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk,
 			return fmt.Errorf("store vertex logs: %w", err)
 		}
 
-		err = thunkRun.Update(ctx, client.DB)
+		err = run.Update(ctx, client.DB)
 		if err != nil {
 			return fmt.Errorf("update thunk run: %w", err)
 		}
 
-		_, _, err := client.GH.Checks.UpdateCheckRun(ctx, client.User, client.Repo, run.GetID(), github.UpdateCheckRunOptions{
+		_, _, err := client.GH.Checks.UpdateCheckRun(ctx, client.User, client.Repo, checkRun.GetID(), github.UpdateCheckRunOptions{
 			Name:        name,
 			Status:      github.String("completed"),
 			Conclusion:  github.String(conclusion),

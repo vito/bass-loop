@@ -3,18 +3,24 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net"
 	"net/http"
+	"net/url"
+	"os"
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/julienschmidt/httprouter"
-	"github.com/vito/bass-loop/pkg/github"
-	"github.com/vito/bass-loop/pkg/thunk"
 	"github.com/vito/bass/pkg/zapctx"
 	"github.com/vito/progrock"
 	"go.uber.org/zap"
 	"gocloud.dev/blob"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/vito/bass-loop/ico"
+	"github.com/vito/bass-loop/js"
+	"github.com/vito/bass-loop/pkg/github"
+	"github.com/vito/bass-loop/pkg/webui"
 )
 
 // MaxBytes is the maximum size of a request payload.
@@ -28,15 +34,26 @@ import (
 // prevent DoS attacks.
 const MaxBytes = 25 * 1024 * 1024
 
-func httpServe(ctx context.Context, db *sql.DB, logs *blob.Bucket) error {
+func httpServe(ctx context.Context, db *sql.DB, blobs *blob.Bucket) error {
+	externalURL, err := url.Parse(config.ExternalURL)
+	if err != nil {
+		return fmt.Errorf("external url: %w", err)
+	}
+
 	return withProgress(ctx, "loop", func(ctx context.Context, vertex *progrock.VertexRecorder) error {
 		logger := zapctx.FromContext(ctx)
 
 		dispatches := new(errgroup.Group)
 
 		router := httprouter.New()
-		router.Handler("GET", "/runs/:run", &thunk.Handler{
-			DB: db,
+
+		router.ServeFiles("/css/*filepath", http.FS(os.DirFS("css")))
+		router.ServeFiles("/js/*filepath", http.FS(js.FS))
+		router.ServeFiles("/ico/*filepath", http.FS(ico.FS))
+
+		router.Handler("GET", "/runs/:run", &webui.RunHandler{
+			DB:    db,
+			Blobs: blobs,
 		})
 
 		if config.GitHubApp.ID != 0 {
@@ -51,8 +68,9 @@ func httpServe(ctx context.Context, db *sql.DB, logs *blob.Bucket) error {
 			}
 
 			router.Handler("POST", "/api/github/hook", &github.WebhookHandler{
+				ExternalURL:   externalURL,
 				DB:            db,
-				Logs:          logs,
+				Blobs:         blobs,
 				RunCtx:        ctx,
 				AppsTransport: appsTransport,
 				WebhookSecret: config.GitHubApp.WebhookSecret,

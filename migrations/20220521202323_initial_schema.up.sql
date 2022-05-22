@@ -1,5 +1,6 @@
 CREATE TABLE thunks (
   digest TEXT NOT NULL PRIMARY KEY,
+  json BLOB NOT NULL,
   sensitive INTEGER NOT NULL DEFAULT FALSE
 );
 

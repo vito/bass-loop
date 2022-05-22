@@ -1,0 +1,16 @@
+<div class="vertex{{if .Cached}} cached{{end}}{{if .Error.Valid}} error{{end}}">
+  <div class="vertex-info">
+    <div class="vertex-name"><code>{{.Name}}</code></div>
+    {{if .Cached}}
+    <div class="vertex-status"><code>CACHED</code></div>
+    {{else}}
+    <div class="vertex-duration"><code>{{.Duration}}</code></div>
+    {{end}}
+  </div>
+  {{if .Error.Valid}}
+  <pre class="vertex-error"><span class="ansi-line"><span class="fg-red">{{.Error.String}}</span></span></pre>
+  {{end}}
+  {{with .LogHTML}}
+  <pre class="vertex-logs">{{.}}</pre>
+  {{end}}
+</div>

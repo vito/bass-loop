@@ -55,3 +55,6 @@ go.work.sum
 
 # sqlite databases
 *.db
+
+# the entire planet
+node_modules

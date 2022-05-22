@@ -35,6 +35,8 @@ import (
 )
 
 type Config struct {
+	ExternalURL string `env:"EXTERNAL_URL"`
+
 	HTTPAddr string `env:"HTTP_ADDR"`
 	SSHAddr  string `env:"SSH_ADDR"`
 
@@ -75,6 +77,8 @@ var showHelp, showVersion bool
 func init() {
 	flags.SetOutput(os.Stdout)
 	flags.SortFlags = false
+
+	flags.StringVar(&config.ExternalURL, "external-url", "http://localhost:8080", "canonical public URL for the app")
 
 	flags.StringVar(&config.HTTPAddr, "http", "0.0.0.0:8080", "address on which to listen for HTTP traffic")
 	flags.StringVar(&config.SSHAddr, "ssh", "0.0.0.0:6455", "address on which to listen for SSH traffic")
