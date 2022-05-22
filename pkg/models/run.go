@@ -8,20 +8,14 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
-	"github.com/vito/bass/pkg/bass"
 )
 
-func CreateThunkRun(ctx context.Context, db *sql.DB, thunk bass.Thunk) (*ThunkRun, error) {
-	sha2, err := thunk.SHA256()
-	if err != nil {
-		return nil, err
-	}
-
-	dbThunk, err := ThunkBySha256(ctx, db, sha2)
+func CreateThunkRun(ctx context.Context, db *sql.DB, digest string) (*Run, error) {
+	dbThunk, err := ThunkByDigest(ctx, db, digest)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dbThunk = &Thunk{
-				Sha256:    sha2,
+				Digest:    digest,
 				Sensitive: 0,
 			}
 
@@ -39,9 +33,9 @@ func CreateThunkRun(ctx context.Context, db *sql.DB, thunk bass.Thunk) (*ThunkRu
 		return nil, err
 	}
 
-	thunkRun := ThunkRun{
+	thunkRun := Run{
 		ID:          id.String(),
-		ThunkSha256: sha2,
+		ThunkDigest: digest,
 		StartTime:   int(time.Now().UnixNano()),
 	}
 

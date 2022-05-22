@@ -7,7 +7,9 @@ import (
 	"net/http"
 
 	"github.com/bradleyfalzon/ghinstallation"
+	"github.com/julienschmidt/httprouter"
 	"github.com/vito/bass-loop/pkg/github"
+	"github.com/vito/bass-loop/pkg/thunk"
 	"github.com/vito/bass/pkg/zapctx"
 	"github.com/vito/progrock"
 	"go.uber.org/zap"
@@ -31,7 +33,10 @@ func httpServe(ctx context.Context, db *sql.DB) error {
 
 		dispatches := new(errgroup.Group)
 
-		mux := http.NewServeMux()
+		router := httprouter.New()
+		router.Handler("GET", "/runs/:run", &thunk.Handler{
+			DB: db,
+		})
 
 		if config.GitHubApp.ID != 0 {
 			keyContent, err := config.GitHubApp.PrivateKey()
@@ -44,7 +49,7 @@ func httpServe(ctx context.Context, db *sql.DB) error {
 				return err
 			}
 
-			mux.Handle("/api/github/hook", &github.WebhookHandler{
+			router.Handler("POST", "/api/github/hook", &github.WebhookHandler{
 				DB:            db,
 				RunCtx:        ctx,
 				AppsTransport: appsTransport,
@@ -55,7 +60,7 @@ func httpServe(ctx context.Context, db *sql.DB) error {
 
 		server := &http.Server{
 			Addr:    config.HTTPAddr,
-			Handler: http.MaxBytesHandler(mux, MaxBytes),
+			Handler: http.MaxBytesHandler(router, MaxBytes),
 			BaseContext: func(net.Listener) context.Context {
 				return ctx
 			},

@@ -6,6 +6,7 @@ cd $(dirname $0)/..
 
 db=${TMPDIR:-/tmp}/bass-loop-gen/loop.db
 mkdir -p "$(dirname $db)"
+[ -e "$db" ] && rm "$db"
 
 go install -tags sqlite3 github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 migrate -path ./migrations -database "sqlite3://${db}" up

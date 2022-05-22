@@ -8,7 +8,7 @@ import (
 
 // Thunk represents a row from 'thunks'.
 type Thunk struct {
-	Sha256    string `json:"sha256"`    // sha256
+	Digest    string `json:"digest"`    // digest
 	Sensitive int    `json:"sensitive"` // sensitive
 	// xo fields
 	_exists, _deleted bool
@@ -35,13 +35,13 @@ func (t *Thunk) Insert(ctx context.Context, db DB) error {
 	}
 	// insert (manual)
 	const sqlstr = `INSERT INTO thunks (` +
-		`sha256, sensitive` +
+		`digest, sensitive` +
 		`) VALUES (` +
 		`$1, $2` +
 		`)`
 	// run
-	logf(sqlstr, t.Sha256, t.Sensitive)
-	if _, err := db.ExecContext(ctx, sqlstr, t.Sha256, t.Sensitive); err != nil {
+	logf(sqlstr, t.Digest, t.Sensitive)
+	if _, err := db.ExecContext(ctx, sqlstr, t.Digest, t.Sensitive); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -60,10 +60,10 @@ func (t *Thunk) Update(ctx context.Context, db DB) error {
 	// update with primary key
 	const sqlstr = `UPDATE thunks SET ` +
 		`sensitive = $1 ` +
-		`WHERE sha256 = $2`
+		`WHERE digest = $2`
 	// run
-	logf(sqlstr, t.Sensitive, t.Sha256)
-	if _, err := db.ExecContext(ctx, sqlstr, t.Sensitive, t.Sha256); err != nil {
+	logf(sqlstr, t.Sensitive, t.Digest)
+	if _, err := db.ExecContext(ctx, sqlstr, t.Sensitive, t.Digest); err != nil {
 		return logerror(err)
 	}
 	return nil
@@ -85,16 +85,16 @@ func (t *Thunk) Upsert(ctx context.Context, db DB) error {
 	}
 	// upsert
 	const sqlstr = `INSERT INTO thunks (` +
-		`sha256, sensitive` +
+		`digest, sensitive` +
 		`) VALUES (` +
 		`$1, $2` +
 		`)` +
-		` ON CONFLICT (sha256) DO ` +
+		` ON CONFLICT (digest) DO ` +
 		`UPDATE SET ` +
 		`sensitive = EXCLUDED.sensitive `
 	// run
-	logf(sqlstr, t.Sha256, t.Sensitive)
-	if _, err := db.ExecContext(ctx, sqlstr, t.Sha256, t.Sensitive); err != nil {
+	logf(sqlstr, t.Digest, t.Sensitive)
+	if _, err := db.ExecContext(ctx, sqlstr, t.Digest, t.Sensitive); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -112,10 +112,10 @@ func (t *Thunk) Delete(ctx context.Context, db DB) error {
 	}
 	// delete with single primary key
 	const sqlstr = `DELETE FROM thunks ` +
-		`WHERE sha256 = $1`
+		`WHERE digest = $1`
 	// run
-	logf(sqlstr, t.Sha256)
-	if _, err := db.ExecContext(ctx, sqlstr, t.Sha256); err != nil {
+	logf(sqlstr, t.Digest)
+	if _, err := db.ExecContext(ctx, sqlstr, t.Digest); err != nil {
 		return logerror(err)
 	}
 	// set deleted
@@ -123,21 +123,21 @@ func (t *Thunk) Delete(ctx context.Context, db DB) error {
 	return nil
 }
 
-// ThunkBySha256 retrieves a row from 'thunks' as a Thunk.
+// ThunkByDigest retrieves a row from 'thunks' as a Thunk.
 //
 // Generated from index 'sqlite_autoindex_thunks_1'.
-func ThunkBySha256(ctx context.Context, db DB, sha256 string) (*Thunk, error) {
+func ThunkByDigest(ctx context.Context, db DB, digest string) (*Thunk, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`sha256, sensitive ` +
+		`digest, sensitive ` +
 		`FROM thunks ` +
-		`WHERE sha256 = $1`
+		`WHERE digest = $1`
 	// run
-	logf(sqlstr, sha256)
+	logf(sqlstr, digest)
 	t := Thunk{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, sha256).Scan(&t.Sha256, &t.Sensitive); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, digest).Scan(&t.Digest, &t.Sensitive); err != nil {
 		return nil, logerror(err)
 	}
 	return &t, nil
