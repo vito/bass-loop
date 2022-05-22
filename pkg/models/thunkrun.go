@@ -42,7 +42,7 @@ func CreateThunkRun(ctx context.Context, db *sql.DB, thunk bass.Thunk) (*ThunkRu
 	thunkRun := ThunkRun{
 		ID:          id.String(),
 		ThunkSha256: sha2,
-		StartTime:   int(time.Now().Unix()),
+		StartTime:   int(time.Now().UnixNano()),
 	}
 
 	err = thunkRun.Save(ctx, db)

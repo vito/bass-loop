@@ -131,7 +131,7 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, user, repo 
 				completedAt := time.Now()
 
 				thunkRun.EndTime = sql.NullInt64{
-					Int64: completedAt.Unix(),
+					Int64: completedAt.UnixNano(),
 					Valid: true,
 				}
 
