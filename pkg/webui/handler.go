@@ -36,9 +36,10 @@ type Vertex struct {
 }
 
 type RunTemplateContext struct {
-	Avatar   template.HTML
-	Name     string
-	Vertexes []Vertex
+	ThunkName string
+	RunID     string
+	Avatar    template.HTML
+	Vertexes  []Vertex
 }
 
 var tmpl = template.Must(template.ParseFS(html.FS, "*.tmpl"))
@@ -117,9 +118,10 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = tmpl.ExecuteTemplate(w, "run.tmpl", &RunTemplateContext{
-		Avatar:   avatar,
-		Name:     bassThunk.Name(),
-		Vertexes: vertexes,
+		ThunkName: bassThunk.Name(),
+		RunID:     run.ID,
+		Avatar:    avatar,
+		Vertexes:  vertexes,
 	})
 	if err != nil {
 		logger.Error("failed to execute template", zap.Error(err))
@@ -148,7 +150,7 @@ func (handler *RunHandler) renderThunk(thunk bass.Thunk) (template.HTML, error) 
 	avatarSvg := new(bytes.Buffer)
 	canvas := svg.New(avatarSvg)
 
-	cellSize := 8
+	cellSize := 9
 	canvas.Startview(
 		cellSize*invaders.Width,
 		cellSize*invaders.Height,

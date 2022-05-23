@@ -1449,8 +1449,32 @@ body {
   justify-content: flex-start;
   flex-direction: row;
 }
+.header .logo-and-text {
+  align-items: center;
+}
 .header .logo-and-text svg {
-  height: auto;
+  height: 99px;
+}
+.header .logo-and-text .heading-and-name {
+  display: flex;
+  flex-direction: column;
+  margin-left: 25px;
+}
+.header .logo-and-text .heading-and-name h1 {
+  font-family: 'Roboto', Helvetica, Arial, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+.header .logo-and-text .heading-and-name ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.header .logo-and-text .heading-and-name .name {
+  margin-left: 0;
+  line-height: 1;
+  font-size: 16px;
+  color: var(--base04);
 }
 @media (min-width: 1024px) {
   .page {

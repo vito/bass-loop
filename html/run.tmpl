@@ -2,8 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
-    <title>bass loop</title>
+    <meta name="viewport" content="width=device-width">
+    <title>run {{.RunID}}</title>
     <link rel="stylesheet" type="text/css" href="/css/iosevka.css" />
     <link rel="stylesheet" type="text/css" href="/css/main.css" />
     <script type="text/javascript" src="/js/switcher.js"></script>
@@ -16,7 +16,13 @@
       <div class="header">
         <span class="logo-and-text">
           {{.Avatar}}
-          <a href="/thunks/{{.Name}}">thunk logs</a>
+          <div class="heading-and-name">
+            <h1>run log</h1>
+            <ul>
+              <li><strong>thunk</strong> <a class="name" href="/thunks/{{.ThunkName}}">{{.ThunkName}}</a></li>
+              <li><strong>run</strong> <a class="name" href="/runs/{{.RunID}}">{{.RunID}}</a></li>
+            </ul>
+          </div>
         </span>
       </div>
 

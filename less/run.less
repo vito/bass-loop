@@ -11,8 +11,36 @@ body {
 
 .header {
   .logo-and-text {
+    align-items: center;
+
     svg {
-      height: auto;
+      height: 99px;
+    }
+
+    .heading-and-name {
+      display: flex;
+      flex-direction: column;
+
+      margin-left: 25px;
+
+      h1 {
+        font-family: @content-font;
+        margin: 0;
+        padding: 0;
+      }
+
+      ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .name {
+        margin-left: 0;
+        line-height: 1;
+        font-size: 16px;
+        color: var(--base04);
+      }
     }
   }
 }
