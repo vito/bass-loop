@@ -1496,7 +1496,7 @@ body {
   margin-right: 1ch;
 }
 .vertex.cached .vertex-info {
-  color: var(--base0C);
+  color: var(--base03);
 }
 .vertex.error .vertex-info {
   color: var(--base08);

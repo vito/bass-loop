@@ -10,11 +10,13 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aoldershaw/ansi"
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/v43/github"
+	"github.com/mattn/go-colorable"
 	"github.com/vito/bass-loop/pkg/blobs"
 	"github.com/vito/bass-loop/pkg/models"
 	"github.com/vito/bass/pkg/bass"
@@ -190,9 +192,27 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 		return nil, fmt.Errorf("create thunk run: %w", err)
 	}
 
-	detailsURL, err := client.ExternalURL.Parse("/runs/" + run.ID)
+	thunkURL, err := client.ExternalURL.Parse("/thunks/" + thunk.Name())
 	if err != nil {
 		return nil, fmt.Errorf("create thunk run: %w", err)
+	}
+
+	runURL, err := client.ExternalURL.Parse("/runs/" + run.ID)
+	if err != nil {
+		return nil, fmt.Errorf("create thunk run: %w", err)
+	}
+
+	output := &github.CheckRunOutput{
+		Title: github.String("(" + thunk.Cmd.ToValue().String() + ")"),
+		Summary: github.String(strings.Join([]string{
+			`* **thunk** [` + thunk.Name() + `](` + thunkURL.String() + `)`,
+			`* **run** [` + run.ID + `](` + runURL.String() + `)`,
+			``,
+			"```sh",
+			"# final command",
+			thunk.Cmdline(),
+			"```",
+		}, "\n")),
 	}
 
 	checkRun, _, err := client.GH.Checks.CreateCheckRun(ctx, client.User, client.Repo, github.CreateCheckRunOptions{
@@ -200,7 +220,9 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 		HeadSHA:    sha,
 		Status:     github.String("in_progress"),
 		StartedAt:  &github.Timestamp{Time: time.Now()},
-		DetailsURL: github.String(detailsURL.String()),
+		ExternalID: github.String(run.ID),
+		DetailsURL: github.String(runURL.String()),
+		Output:     output,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create check run: %w", err)
@@ -322,11 +344,16 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 			return fmt.Errorf("update thunk run: %w", err)
 		}
 
+		outBuf := new(bytes.Buffer)
+		progress.Summarize(colorable.NewNonColorable(outBuf))
+		output.Text = github.String("```\n" + outBuf.String() + "\n```")
+
 		_, _, err := client.GH.Checks.UpdateCheckRun(ctx, client.User, client.Repo, checkRun.GetID(), github.UpdateCheckRunOptions{
 			Name:        name,
 			Status:      github.String("completed"),
 			Conclusion:  github.String(conclusion),
 			CompletedAt: &github.Timestamp{Time: completedAt},
+			Output:      output,
 		})
 		if err != nil {
 			return fmt.Errorf("update check run: %w", err)
