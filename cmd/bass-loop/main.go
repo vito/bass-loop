@@ -217,7 +217,7 @@ func openDB() (*sql.DB, error) {
 		config.SQLitePath = defaultPath
 	}
 
-	db, err := sql.Open("sqlite3", config.SQLitePath+"?cache=shared&mode=rwc&_busy_timeout=10000")
+	db, err := sql.Open("sqlite3", config.SQLitePath+"?cache=shared&mode=rwc&_busy_timeout=10000&_journal_mode=WAL&_synchronous=NORMAL&_foreign_keys")
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite3: %w", err)
 	}
