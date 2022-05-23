@@ -1450,6 +1450,7 @@ body {
   flex-direction: row;
 }
 .header .logo-and-text {
+  justify-content: flex-start;
   align-items: center;
 }
 .header .logo-and-text svg {
