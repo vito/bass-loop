@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
-    <title>run {{.RunID}}</title>
+    <title>run {{.Run.ID}}</title>
     <link rel="stylesheet" type="text/css" href="/css/iosevka.css" />
     <link rel="stylesheet" type="text/css" href="/css/main.css" />
     <script type="text/javascript" src="/js/switcher.js"></script>
@@ -20,7 +20,7 @@
             <h1>run log</h1>
             <ul>
               <li><strong>thunk</strong> <a class="name" href="/thunks/{{.ThunkName}}">{{.ThunkName}}</a></li>
-              <li><strong>run</strong> <a class="name" href="/runs/{{.RunID}}">{{.RunID}}</a> {{.Duration}}</li>
+              <li><strong>run</strong> <a class="name" href="/runs/{{.Run.ID}}">{{.Run.ID}}</a> {{.Duration}}</li>
             </ul>
           </div>
         </span>

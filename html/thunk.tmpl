@@ -29,7 +29,7 @@
 
       <ul class="thunk-runs">
       {{range .Runs}}
-        <li><a class="name" href="/runs/{{.RunID}}">{{.RunID}}</a> {{.Duration}}</li>
+        <li><a class="name" href="/runs/{{.Run.ID}}">{{.Run.ID}}</a> {{.Duration}}</li>
       {{end}}
       </ul>
 

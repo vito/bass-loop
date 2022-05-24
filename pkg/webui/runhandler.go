@@ -24,11 +24,18 @@ type RunHandler struct {
 }
 
 type RunTemplateContext struct {
+	Run       *models.Run
 	ThunkName string
-	RunID     string
 	Avatar    template.HTML
 	Vertexes  []Vertex
-	Duration  string
+}
+
+func (rtc RunTemplateContext) Duration() string {
+	if rtc.Run.EndTime != nil {
+		return duration(rtc.Run.EndTime.Time().Sub(rtc.Run.StartTime.Time()))
+	} else {
+		return "..."
+	}
 }
 
 func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -101,10 +108,9 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = tmpl.ExecuteTemplate(w, "run.tmpl", &RunTemplateContext{
+		Run:       run,
 		ThunkName: bassThunk.Name(),
-		RunID:     run.ID,
 		Avatar:    avatar,
-		Duration:  duration(run.EndTime.Time().Sub(run.StartTime.Time())),
 		Vertexes:  vertexes,
 	})
 	if err != nil {

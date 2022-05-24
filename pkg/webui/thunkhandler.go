@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"net/http"
 	"sort"
-	"time"
 
 	chtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"
@@ -72,16 +71,10 @@ func (handler *ThunkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var runContexts []RunTemplateContext
 	for _, run := range runs {
-		var dur time.Duration
-		if run.EndTime != nil {
-			dur = run.EndTime.Time().Sub(run.StartTime.Time())
-		}
-
 		runContexts = append(runContexts, RunTemplateContext{
+			Run:       run,
 			ThunkName: bassThunk.Name(),
-			RunID:     run.ID,
 			Avatar:    avatar,
-			Duration:  duration(dur),
 		})
 	}
 
