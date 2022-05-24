@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -e -u -x
+
+go install -tags sqlite3 github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+cd $(dirname $0)/..
+
+migrate create -ext sql -dir ./migrations/ "$@"
