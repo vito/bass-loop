@@ -4,7 +4,7 @@
     {{if .Cached}}
     <div class="vertex-status"><code>CACHED</code></div>
     {{else}}
-    <div class="vertex-duration"><code>{{.Duration}}</code></div>
+    <div class="vertex-duration"><code>[{{.Duration}}]</code></div>
     {{end}}
   </div>
   {{if .Error.Valid}}

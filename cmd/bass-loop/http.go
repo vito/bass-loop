@@ -55,6 +55,11 @@ func httpServe(ctx context.Context, db *sql.DB, blobs *blob.Bucket) error {
 		Blobs: blobs,
 	})
 
+	router.Handler("GET", "/thunks/:thunk", &webui.ThunkHandler{
+		DB:    db,
+		Blobs: blobs,
+	})
+
 	if config.GitHubApp.ID != 0 {
 		keyContent, err := config.GitHubApp.PrivateKey()
 		if err != nil {

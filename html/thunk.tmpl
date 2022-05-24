@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
-    <title>run {{.RunID}}</title>
+    <title>thunk {{.ThunkName}}</title>
     <link rel="stylesheet" type="text/css" href="/css/iosevka.css" />
     <link rel="stylesheet" type="text/css" href="/css/main.css" />
     <script type="text/javascript" src="/js/switcher.js"></script>
@@ -17,18 +17,27 @@
         <span class="logo-and-text">
           {{.Avatar}}
           <div class="heading-and-name">
-            <h1>run log</h1>
+            <h1>thunk</h1>
             <ul>
               <li><strong>thunk</strong> <a class="name" href="/thunks/{{.ThunkName}}">{{.ThunkName}}</a></li>
-              <li><strong>run</strong> <a class="name" href="/runs/{{.RunID}}">{{.RunID}}</a> {{.Duration}}</li>
             </ul>
           </div>
         </span>
       </div>
 
-      {{range .Vertexes}}
-      {{template "vertex.tmpl" .}}
+      <h2>runs</h2>
+
+      <ul class="thunk-runs">
+      {{range .Runs}}
+        <li><a class="name" href="/runs/{{.RunID}}">{{.RunID}}</a> {{.Duration}}</li>
       {{end}}
+      </ul>
+
+      <h2>json</h2>
+
+      <div class="highlight" contenteditable="true">
+        {{.JSON}}
+      </div>
 
       <div class="footer">
         <div class="choose-theme" id="choosetheme">

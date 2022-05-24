@@ -156,7 +156,7 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 			return fmt.Errorf("get services: %w", err)
 		}
 
-		var addrs bass.RuntimeAddrs
+		addrs := &bass.RuntimeAddrs{}
 		for _, svc := range svcs {
 			u, err := url.Parse(svc.Addr)
 			if err != nil {
@@ -172,7 +172,7 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 				Arch: rt.Arch,
 			},
 			Runtime: rt.Driver,
-			Addrs:   addrs,
+			Addrs:   *addrs,
 			Config:  cfg,
 		})
 	}
