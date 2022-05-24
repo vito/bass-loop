@@ -8,9 +8,8 @@ import (
 
 // Thunk represents a row from 'thunks'.
 type Thunk struct {
-	Digest    string `json:"digest"`    // digest
-	JSON      []byte `json:"json"`      // json
-	Sensitive int    `json:"sensitive"` // sensitive
+	Digest string `json:"digest"` // digest
+	JSON   []byte `json:"json"`   // json
 	// xo fields
 	_exists, _deleted bool
 }
@@ -36,13 +35,13 @@ func (t *Thunk) Insert(ctx context.Context, db DB) error {
 	}
 	// insert (manual)
 	const sqlstr = `INSERT INTO thunks (` +
-		`digest, json, sensitive` +
+		`digest, json` +
 		`) VALUES (` +
-		`$1, $2, $3` +
+		`$1, $2` +
 		`)`
 	// run
-	logf(sqlstr, t.Digest, t.JSON, t.Sensitive)
-	if _, err := db.ExecContext(ctx, sqlstr, t.Digest, t.JSON, t.Sensitive); err != nil {
+	logf(sqlstr, t.Digest, t.JSON)
+	if _, err := db.ExecContext(ctx, sqlstr, t.Digest, t.JSON); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -60,11 +59,11 @@ func (t *Thunk) Update(ctx context.Context, db DB) error {
 	}
 	// update with primary key
 	const sqlstr = `UPDATE thunks SET ` +
-		`json = $1, sensitive = $2 ` +
-		`WHERE digest = $3`
+		`json = $1 ` +
+		`WHERE digest = $2`
 	// run
-	logf(sqlstr, t.JSON, t.Sensitive, t.Digest)
-	if _, err := db.ExecContext(ctx, sqlstr, t.JSON, t.Sensitive, t.Digest); err != nil {
+	logf(sqlstr, t.JSON, t.Digest)
+	if _, err := db.ExecContext(ctx, sqlstr, t.JSON, t.Digest); err != nil {
 		return logerror(err)
 	}
 	return nil
@@ -86,16 +85,16 @@ func (t *Thunk) Upsert(ctx context.Context, db DB) error {
 	}
 	// upsert
 	const sqlstr = `INSERT INTO thunks (` +
-		`digest, json, sensitive` +
+		`digest, json` +
 		`) VALUES (` +
-		`$1, $2, $3` +
+		`$1, $2` +
 		`)` +
 		` ON CONFLICT (digest) DO ` +
 		`UPDATE SET ` +
-		`json = EXCLUDED.json, sensitive = EXCLUDED.sensitive `
+		`json = EXCLUDED.json `
 	// run
-	logf(sqlstr, t.Digest, t.JSON, t.Sensitive)
-	if _, err := db.ExecContext(ctx, sqlstr, t.Digest, t.JSON, t.Sensitive); err != nil {
+	logf(sqlstr, t.Digest, t.JSON)
+	if _, err := db.ExecContext(ctx, sqlstr, t.Digest, t.JSON); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -130,7 +129,7 @@ func (t *Thunk) Delete(ctx context.Context, db DB) error {
 func ThunkByDigest(ctx context.Context, db DB, digest string) (*Thunk, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`digest, json, sensitive ` +
+		`digest, json ` +
 		`FROM thunks ` +
 		`WHERE digest = $1`
 	// run
@@ -138,7 +137,7 @@ func ThunkByDigest(ctx context.Context, db DB, digest string) (*Thunk, error) {
 	t := Thunk{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, digest).Scan(&t.Digest, &t.JSON, &t.Sensitive); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, digest).Scan(&t.Digest, &t.JSON); err != nil {
 		return nil, logerror(err)
 	}
 	return &t, nil

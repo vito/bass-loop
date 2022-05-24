@@ -9,10 +9,11 @@ import (
 
 // Run represents a row from 'runs'.
 type Run struct {
-	ThunkDigest string        `json:"thunk_digest"` // thunk_digest
 	ID          string        `json:"id"`           // id
-	StartTime   int           `json:"start_time"`   // start_time
-	EndTime     sql.NullInt64 `json:"end_time"`     // end_time
+	UserID      string        `json:"user_id"`      // user_id
+	ThunkDigest string        `json:"thunk_digest"` // thunk_digest
+	StartTime   Time          `json:"start_time"`   // start_time
+	EndTime     *Time         `json:"end_time"`     // end_time
 	Succeeded   sql.NullInt64 `json:"succeeded"`    // succeeded
 	// xo fields
 	_exists, _deleted bool
@@ -39,13 +40,13 @@ func (r *Run) Insert(ctx context.Context, db DB) error {
 	}
 	// insert (manual)
 	const sqlstr = `INSERT INTO runs (` +
-		`thunk_digest, id, start_time, end_time, succeeded` +
+		`id, user_id, thunk_digest, start_time, end_time, succeeded` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5` +
+		`$1, $2, $3, $4, $5, $6` +
 		`)`
 	// run
-	logf(sqlstr, r.ThunkDigest, r.ID, r.StartTime, r.EndTime, r.Succeeded)
-	if _, err := db.ExecContext(ctx, sqlstr, r.ThunkDigest, r.ID, r.StartTime, r.EndTime, r.Succeeded); err != nil {
+	logf(sqlstr, r.ID, r.UserID, r.ThunkDigest, r.StartTime, r.EndTime, r.Succeeded)
+	if _, err := db.ExecContext(ctx, sqlstr, r.ID, r.UserID, r.ThunkDigest, r.StartTime, r.EndTime, r.Succeeded); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -63,11 +64,11 @@ func (r *Run) Update(ctx context.Context, db DB) error {
 	}
 	// update with primary key
 	const sqlstr = `UPDATE runs SET ` +
-		`thunk_digest = $1, start_time = $2, end_time = $3, succeeded = $4 ` +
-		`WHERE id = $5`
+		`user_id = $1, thunk_digest = $2, start_time = $3, end_time = $4, succeeded = $5 ` +
+		`WHERE id = $6`
 	// run
-	logf(sqlstr, r.ThunkDigest, r.StartTime, r.EndTime, r.Succeeded, r.ID)
-	if _, err := db.ExecContext(ctx, sqlstr, r.ThunkDigest, r.StartTime, r.EndTime, r.Succeeded, r.ID); err != nil {
+	logf(sqlstr, r.UserID, r.ThunkDigest, r.StartTime, r.EndTime, r.Succeeded, r.ID)
+	if _, err := db.ExecContext(ctx, sqlstr, r.UserID, r.ThunkDigest, r.StartTime, r.EndTime, r.Succeeded, r.ID); err != nil {
 		return logerror(err)
 	}
 	return nil
@@ -89,16 +90,16 @@ func (r *Run) Upsert(ctx context.Context, db DB) error {
 	}
 	// upsert
 	const sqlstr = `INSERT INTO runs (` +
-		`thunk_digest, id, start_time, end_time, succeeded` +
+		`id, user_id, thunk_digest, start_time, end_time, succeeded` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5` +
+		`$1, $2, $3, $4, $5, $6` +
 		`)` +
 		` ON CONFLICT (id) DO ` +
 		`UPDATE SET ` +
-		`thunk_digest = EXCLUDED.thunk_digest, start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time, succeeded = EXCLUDED.succeeded `
+		`user_id = EXCLUDED.user_id, thunk_digest = EXCLUDED.thunk_digest, start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time, succeeded = EXCLUDED.succeeded `
 	// run
-	logf(sqlstr, r.ThunkDigest, r.ID, r.StartTime, r.EndTime, r.Succeeded)
-	if _, err := db.ExecContext(ctx, sqlstr, r.ThunkDigest, r.ID, r.StartTime, r.EndTime, r.Succeeded); err != nil {
+	logf(sqlstr, r.ID, r.UserID, r.ThunkDigest, r.StartTime, r.EndTime, r.Succeeded)
+	if _, err := db.ExecContext(ctx, sqlstr, r.ID, r.UserID, r.ThunkDigest, r.StartTime, r.EndTime, r.Succeeded); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -133,7 +134,7 @@ func (r *Run) Delete(ctx context.Context, db DB) error {
 func RunsByThunkDigest(ctx context.Context, db DB, thunkDigest string) ([]*Run, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`thunk_digest, id, start_time, end_time, succeeded ` +
+		`id, user_id, thunk_digest, start_time, end_time, succeeded ` +
 		`FROM runs ` +
 		`WHERE thunk_digest = $1`
 	// run
@@ -150,7 +151,7 @@ func RunsByThunkDigest(ctx context.Context, db DB, thunkDigest string) ([]*Run, 
 			_exists: true,
 		}
 		// scan
-		if err := rows.Scan(&r.ThunkDigest, &r.ID, &r.StartTime, &r.EndTime, &r.Succeeded); err != nil {
+		if err := rows.Scan(&r.ID, &r.UserID, &r.ThunkDigest, &r.StartTime, &r.EndTime, &r.Succeeded); err != nil {
 			return nil, logerror(err)
 		}
 		res = append(res, &r)
@@ -167,7 +168,7 @@ func RunsByThunkDigest(ctx context.Context, db DB, thunkDigest string) ([]*Run, 
 func RunByID(ctx context.Context, db DB, id string) (*Run, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`thunk_digest, id, start_time, end_time, succeeded ` +
+		`id, user_id, thunk_digest, start_time, end_time, succeeded ` +
 		`FROM runs ` +
 		`WHERE id = $1`
 	// run
@@ -175,7 +176,7 @@ func RunByID(ctx context.Context, db DB, id string) (*Run, error) {
 	r := Run{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&r.ThunkDigest, &r.ID, &r.StartTime, &r.EndTime, &r.Succeeded); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&r.ID, &r.UserID, &r.ThunkDigest, &r.StartTime, &r.EndTime, &r.Succeeded); err != nil {
 		return nil, logerror(err)
 	}
 	return &r, nil

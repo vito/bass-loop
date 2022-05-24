@@ -13,8 +13,8 @@ type Vertex struct {
 	Digest    string         `json:"digest"`     // digest
 	Name      string         `json:"name"`       // name
 	Cached    int            `json:"cached"`     // cached
-	StartTime sql.NullInt64  `json:"start_time"` // start_time
-	EndTime   sql.NullInt64  `json:"end_time"`   // end_time
+	StartTime *Time          `json:"start_time"` // start_time
+	EndTime   *Time          `json:"end_time"`   // end_time
 	Error     sql.NullString `json:"error"`      // error
 	// xo fields
 	_exists, _deleted bool

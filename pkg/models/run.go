@@ -8,16 +8,27 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+	"github.com/google/go-github/v43/github"
 	"github.com/vito/bass/pkg/bass"
 )
 
-func CreateThunkRun(ctx context.Context, db *sql.DB, thunk bass.Thunk) (*Run, error) {
+func CreateThunkRun(ctx context.Context, db *sql.DB, user *github.User, thunk bass.Thunk) (*Run, error) {
 	sha2, err := thunk.SHA256()
 	if err != nil {
 		return nil, err
 	}
 
 	payload, err := bass.MarshalJSON(thunk)
+	if err != nil {
+		return nil, err
+	}
+
+	dbUser := User{
+		ID:    user.GetNodeID(),
+		Login: user.GetLogin(),
+	}
+
+	err = dbUser.Upsert(ctx, db)
 	if err != nil {
 		return nil, err
 	}
@@ -45,10 +56,12 @@ func CreateThunkRun(ctx context.Context, db *sql.DB, thunk bass.Thunk) (*Run, er
 		return nil, err
 	}
 
+	startTime := NewTime(time.Now().UTC())
 	thunkRun := Run{
 		ID:          id.String(),
+		UserID:      sql.NullString{String: dbUser.ID, Valid: true},
 		ThunkDigest: sha2,
-		StartTime:   int(time.Now().UnixNano()),
+		StartTime:   startTime,
 	}
 
 	err = thunkRun.Save(ctx, db)
