@@ -37,9 +37,8 @@ func CreateThunkRun(ctx context.Context, db *sql.DB, user *github.User, thunk ba
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dbThunk = &Thunk{
-				Digest:    sha2,
-				JSON:      payload,
-				Sensitive: 0,
+				Digest: sha2,
+				JSON:   payload,
 			}
 
 			err = dbThunk.Save(ctx, db)
@@ -59,7 +58,7 @@ func CreateThunkRun(ctx context.Context, db *sql.DB, user *github.User, thunk ba
 	startTime := NewTime(time.Now().UTC())
 	thunkRun := Run{
 		ID:          id.String(),
-		UserID:      sql.NullString{String: dbUser.ID, Valid: true},
+		UserID:      user.GetNodeID(),
 		ThunkDigest: sha2,
 		StartTime:   startTime,
 	}
