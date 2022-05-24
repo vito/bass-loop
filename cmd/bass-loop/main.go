@@ -36,7 +36,12 @@ import (
 type Config struct {
 	ExternalURL string `env:"EXTERNAL_URL"`
 
-	HTTPAddr  string `env:"HTTP_ADDR"`
+	HTTPAddr string `env:"HTTP_ADDR"`
+
+	TLSCertPath string `env:"TLS_CERT_PATH"`
+	TLSKeyPath  string `env:"TLS_KEY_PATH"`
+
+	// for Let's Encrypt autocert
 	TLSDomain string `env:"TLS_DOMAIN"`
 
 	SSH runnel.Server `env:"SSH"`
@@ -81,8 +86,11 @@ func init() {
 
 	flags.StringVar(&config.ExternalURL, "external-url", "http://localhost:8080", "canonical public URL for the app")
 
-	flags.StringVar(&config.HTTPAddr, "http", "0.0.0.0:8080", "address on which to listen for HTTP traffic")
-	flags.StringVar(&config.TLSDomain, "tls-domain", "", "address on which to listen for HTTP traffic")
+	flags.StringVar(&config.HTTPAddr, "http", "", "address on which to listen for HTTP traffic")
+
+	flags.StringVar(&config.TLSDomain, "tls-domain", "", "domain for Let's Encrypt cert generation")
+	flags.StringVar(&config.TLSCertPath, "tls-cert", "", "TLS certificate path to use for HTTPS")
+	flags.StringVar(&config.TLSKeyPath, "tls-key", "", "TLS private key path to use for HTTPS")
 
 	flags.StringVar(&config.SSH.Addr, "ssh", "0.0.0.0:6455", "address on which to listen for SSH traffic")
 	flags.StringVar(&config.SSH.HostKeyPath, "ssh-host-key", "", "path to a private key for the SSH server")

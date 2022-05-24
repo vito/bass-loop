@@ -97,6 +97,8 @@ func httpServe(ctx context.Context, db *sql.DB, blobs *blob.Bucket) error {
 
 	if config.TLSDomain != "" {
 		return server.Serve(autocert.NewListener(config.TLSDomain))
+	} else if config.TLSCertPath != "" && config.TLSKeyPath != "" {
+		return server.ListenAndServeTLS(config.TLSCertPath, config.TLSKeyPath)
 	} else {
 		return server.ListenAndServe()
 	}
