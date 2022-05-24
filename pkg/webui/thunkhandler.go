@@ -67,7 +67,7 @@ func (handler *ThunkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sort.Slice(runs, func(i, j int) bool {
-		return runs[i].EndTime.Time().Before(runs[j].EndTime.Time())
+		return runs[i].StartTime.Time().Before(runs[j].StartTime.Time())
 	})
 
 	var runContexts []RunTemplateContext
