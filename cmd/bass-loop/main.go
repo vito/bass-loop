@@ -36,7 +36,8 @@ import (
 type Config struct {
 	ExternalURL string `env:"EXTERNAL_URL"`
 
-	HTTPAddr string `env:"HTTP_ADDR"`
+	HTTPAddr  string `env:"HTTP_ADDR"`
+	TLSDomain string `env:"TLS_DOMAIN"`
 
 	SSH runnel.Server `env:"SSH"`
 
@@ -81,7 +82,10 @@ func init() {
 	flags.StringVar(&config.ExternalURL, "external-url", "http://localhost:8080", "canonical public URL for the app")
 
 	flags.StringVar(&config.HTTPAddr, "http", "0.0.0.0:8080", "address on which to listen for HTTP traffic")
+	flags.StringVar(&config.TLSDomain, "tls-domain", "", "address on which to listen for HTTP traffic")
+
 	flags.StringVar(&config.SSH.Addr, "ssh", "0.0.0.0:6455", "address on which to listen for SSH traffic")
+	flags.StringVar(&config.SSH.HostKeyPath, "ssh-host-key", "", "path to a private key for the SSH server")
 
 	// this is a path, not a DSN; don't want to expose that level of complexity
 	// unless we need to. would rather make sure we're tracking a correct default

@@ -14,6 +14,7 @@ import (
 	"github.com/vito/bass/pkg/zapctx"
 	"go.uber.org/zap"
 	"gocloud.dev/blob"
+	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/vito/bass-loop/ico"
@@ -94,5 +95,9 @@ func httpServe(ctx context.Context, db *sql.DB, blobs *blob.Bucket) error {
 		zap.String("protocol", "http"),
 		zap.String("addr", config.HTTPAddr))
 
-	return server.ListenAndServe()
+	if config.TLSDomain != "" {
+		return server.Serve(autocert.NewListener(config.TLSDomain))
+	} else {
+		return server.ListenAndServe()
+	}
 }
