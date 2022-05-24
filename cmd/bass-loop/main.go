@@ -17,9 +17,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/mattn/go-sqlite3"
-	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/azureblob"
-	"gocloud.dev/blob/fileblob"
 	_ "gocloud.dev/blob/fileblob"
 	_ "gocloud.dev/blob/gcsblob"
 	_ "gocloud.dev/blob/memblob"
@@ -28,6 +26,7 @@ import (
 	"github.com/clarafu/envstruct"
 	flag "github.com/spf13/pflag"
 	"github.com/vito/bass-loop/migrations"
+	"github.com/vito/bass-loop/pkg/runnel"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
 	"github.com/vito/bass/pkg/ioctx"
@@ -38,7 +37,8 @@ type Config struct {
 	ExternalURL string `env:"EXTERNAL_URL"`
 
 	HTTPAddr string `env:"HTTP_ADDR"`
-	SSHAddr  string `env:"SSH_ADDR"`
+
+	SSH runnel.Server `env:"SSH"`
 
 	SQLitePath  string `env:"SQLITE_PATH"`
 	BlobsBucket string `env:"BLOBS_BUCKET"`
@@ -81,7 +81,7 @@ func init() {
 	flags.StringVar(&config.ExternalURL, "external-url", "http://localhost:8080", "canonical public URL for the app")
 
 	flags.StringVar(&config.HTTPAddr, "http", "0.0.0.0:8080", "address on which to listen for HTTP traffic")
-	flags.StringVar(&config.SSHAddr, "ssh", "0.0.0.0:6455", "address on which to listen for SSH traffic")
+	flags.StringVar(&config.SSH.Addr, "ssh", "0.0.0.0:6455", "address on which to listen for SSH traffic")
 
 	// this is a path, not a DSN; don't want to expose that level of complexity
 	// unless we need to. would rather make sure we're tracking a correct default
@@ -180,31 +180,7 @@ func root(ctx context.Context) error {
 		defer pprof.StopCPUProfile()
 	}
 
-	db, err := openDB()
-	if err != nil {
-		return err
-	}
-
-	defer db.Close()
-
-	var logs *blob.Bucket
-	if config.BlobsBucket != "" {
-		logs, err = blob.OpenBucket(ctx, config.BlobsBucket)
-	} else {
-		localBlobs, err := xdg.DataFile("bass-loop/blobs")
-		if err != nil {
-			return fmt.Errorf("xdg: %w", err)
-		}
-
-		logs, err = fileblob.OpenBucket(localBlobs, &fileblob.Options{
-			CreateDir: true,
-		})
-	}
-	if err != nil {
-		return fmt.Errorf("open logs bucket: %w", err)
-	}
-
-	return httpServe(ctx, db, logs)
+	return serve(ctx)
 }
 
 func openDB() (*sql.DB, error) {

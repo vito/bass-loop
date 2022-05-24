@@ -8,6 +8,7 @@ require (
 	github.com/aoldershaw/ansi v0.0.0-20210128170437-8c5426635e02
 	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/clarafu/envstruct v0.0.0-20210414180622-62f3047362cf
+	github.com/gliderlabs/ssh v0.3.4
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/google/go-github/v43 v43.0.0
@@ -16,7 +17,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/spf13/pflag v1.0.5
-	github.com/vito/bass v0.5.1-0.20220523013859-af815f0f7514
+	github.com/vito/bass v0.5.1-0.20220524014333-5d9995d2045a
 	github.com/vito/invaders v0.0.2
 	github.com/vito/progrock v0.0.0-20220404031818-4f9564b3a350
 	go.uber.org/zap v1.21.0
@@ -41,6 +42,7 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/alecthomas/chroma v0.9.2 // indirect
 	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
+	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/aws/aws-sdk-go v1.43.31 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.16.2 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.1 // indirect

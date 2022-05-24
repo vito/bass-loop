@@ -80,7 +80,7 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sort.Slice(vs, func(i, j int) bool {
-		return vs[i].EndTime.Int64 < vs[j].EndTime.Int64
+		return vs[i].EndTime.Time().Before(vs[j].EndTime.Time())
 	})
 
 	var vertexes []Vertex
@@ -90,17 +90,13 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		logHTML, err := handler.Blobs.ReadAll(ctx, blobs.VertexHTMLLogKey(v))
-		if err != nil {
-			if gcerrors.Code(err) == gcerrors.NotFound {
-				logger.Debug("no logs", zap.String("digest", v.Digest))
-			} else {
-				logger.Error("failed to get vertex log", zap.Error(err))
-			}
+		if err != nil && gcerrors.Code(err) != gcerrors.NotFound {
+			logger.Error("failed to get vertex log", zap.Error(err))
 		}
 
 		var dur time.Duration
-		if v.EndTime.Valid && v.StartTime.Valid {
-			dur = time.Duration(v.EndTime.Int64 - v.StartTime.Int64)
+		if v.EndTime != nil {
+			dur = v.EndTime.Time().Sub(v.StartTime.Time())
 		}
 
 		vertexes = append(vertexes, Vertex{

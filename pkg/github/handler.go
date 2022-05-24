@@ -78,8 +78,9 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type RepoEvent struct {
-	Repo         *github.Repository   `json:"repository,omitempty"`
-	Installation *github.Installation `json:"installation,omitempty"`
+	Repo         *github.Repository   `json:"repository"`
+	Sender       *github.User         `json:"sender"`
+	Installation *github.Installation `json:"installation"`
 }
 
 func (h *WebhookHandler) Handle(ctx context.Context, eventType, deliveryID string, payload []byte) error {
@@ -97,6 +98,7 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventType, deliveryID strin
 		return h.dispatch(
 			ctx,
 			event.Installation.GetID(),
+			event.Sender,
 			event.Repo.GetOwner().GetLogin(),
 			event.Repo.GetName(),
 			eventType,
@@ -110,7 +112,7 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventType, deliveryID strin
 	return nil
 }
 
-func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, user, repo string, eventType, deliveryID string, payload []byte) error {
+func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *github.User, user, repo string, eventType, deliveryID string, payload []byte) error {
 	logger := zapctx.FromContext(ctx)
 
 	runCtx := bass.ForkTrace(h.RunCtx)
@@ -131,13 +133,53 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, user, repo 
 		GH: github.NewClient(&http.Client{
 			Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),
 		}),
-		Blobs: h.Blobs,
-		User:  user,
-		Repo:  repo,
+		Blobs:  h.Blobs,
+		Sender: sender,
+		User:   user,
+		Repo:   repo,
 	}).Scope())
 
-	// TODO: db-backed pool that looks up user's workers
-	pool, err := runtimes.NewPool(&defaultConfigTODO)
+	var runtimeConfigs []bass.RuntimeConfig
+	rts, err := models.RuntimesByUserID(ctx, h.DB, sender.GetNodeID())
+	if err != nil {
+		return fmt.Errorf("get runtimes: %w", err)
+	}
+
+	for _, rt := range rts {
+		var cfg *bass.Scope
+		if err := bass.UnmarshalJSON(rt.Config, &cfg); err != nil {
+			return fmt.Errorf("unmarshal runtime config: %w", err)
+		}
+
+		svcs, err := models.ServicesByUserIDRuntimeName(ctx, h.DB, sender.GetNodeID(), rt.Name)
+		if err != nil {
+			return fmt.Errorf("get services: %w", err)
+		}
+
+		var addrs bass.RuntimeAddrs
+		for _, svc := range svcs {
+			u, err := url.Parse(svc.Addr)
+			if err != nil {
+				return fmt.Errorf("parse service url %q: %w", svc.Addr, err)
+			}
+
+			addrs.SetService(svc.Service, u)
+		}
+
+		runtimeConfigs = append(runtimeConfigs, bass.RuntimeConfig{
+			Platform: bass.Platform{
+				OS:   rt.Os,
+				Arch: rt.Arch,
+			},
+			Runtime: rt.Driver,
+			Addrs:   addrs,
+			Config:  cfg,
+		})
+	}
+
+	pool, err := runtimes.NewPool(&bass.Config{
+		Runtimes: runtimeConfigs,
+	})
 	if err != nil {
 		return fmt.Errorf("pool: %w", err)
 	}
@@ -173,6 +215,7 @@ type BassGitHubClient struct {
 	DB          *sql.DB
 	Blobs       *blob.Bucket
 	GH          *github.Client
+	Sender      *github.User
 	User, Repo  string
 }
 
@@ -187,7 +230,7 @@ func (client *BassGitHubClient) Scope() *bass.Scope {
 func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk, name, sha string) (bass.Combiner, error) {
 	logger := zapctx.FromContext(ctx)
 
-	run, err := models.CreateThunkRun(ctx, client.DB, thunk)
+	run, err := models.CreateThunkRun(ctx, client.DB, client.Sender, thunk)
 	if err != nil {
 		return nil, fmt.Errorf("create thunk run: %w", err)
 	}
@@ -232,12 +275,8 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 	thunkCtx := progrock.RecorderToContext(ctx, progrock.NewRecorder(progress))
 
 	complete := func(ctx context.Context, ok bool) error {
-		completedAt := time.Now()
-
-		run.EndTime = sql.NullInt64{
-			Int64: completedAt.UnixNano(),
-			Valid: true,
-		}
+		completedAt := models.NewTime(time.Now().UTC())
+		run.EndTime = &completedAt
 
 		var conclusion string
 		if ok {
@@ -252,14 +291,12 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 		}
 
 		err = progress.EachVertex(func(v *cli.Vertex) error {
-			var startTime, endTime sql.NullInt64
+			var startTime, endTime models.Time
 			if v.Started != nil {
-				startTime.Int64 = v.Started.UnixNano()
-				startTime.Valid = true
+				startTime = models.NewTime(v.Started.UTC())
 			}
 			if v.Completed != nil {
-				endTime.Int64 = v.Completed.UnixNano()
-				endTime.Valid = true
+				endTime = models.NewTime(v.Completed.UTC())
 			}
 
 			var vErr sql.NullString
@@ -277,8 +314,8 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 				Digest:    v.Digest.String(),
 				RunID:     run.ID,
 				Name:      v.Name,
-				StartTime: startTime,
-				EndTime:   endTime,
+				StartTime: &startTime,
+				EndTime:   &endTime,
 				Error:     vErr,
 				Cached:    cached,
 			}
@@ -352,7 +389,7 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 			Name:        name,
 			Status:      github.String("completed"),
 			Conclusion:  github.String(conclusion),
-			CompletedAt: &github.Timestamp{Time: completedAt},
+			CompletedAt: &github.Timestamp{Time: completedAt.Time()},
 			Output:      output,
 		})
 		if err != nil {

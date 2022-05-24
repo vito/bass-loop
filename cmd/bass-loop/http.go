@@ -12,7 +12,6 @@ import (
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/julienschmidt/httprouter"
 	"github.com/vito/bass/pkg/zapctx"
-	"github.com/vito/progrock"
 	"go.uber.org/zap"
 	"gocloud.dev/blob"
 	"golang.org/x/sync/errgroup"
@@ -35,70 +34,65 @@ import (
 const MaxBytes = 25 * 1024 * 1024
 
 func httpServe(ctx context.Context, db *sql.DB, blobs *blob.Bucket) error {
+	logger := zapctx.FromContext(ctx)
+
 	externalURL, err := url.Parse(config.ExternalURL)
 	if err != nil {
 		return fmt.Errorf("external url: %w", err)
 	}
 
-	return withProgress(ctx, "loop", func(ctx context.Context, vertex *progrock.VertexRecorder) error {
-		logger := zapctx.FromContext(ctx)
+	dispatches := new(errgroup.Group)
 
-		dispatches := new(errgroup.Group)
+	router := httprouter.New()
 
-		router := httprouter.New()
+	router.ServeFiles("/css/*filepath", http.FS(os.DirFS("css")))
+	router.ServeFiles("/js/*filepath", http.FS(js.FS))
+	router.ServeFiles("/ico/*filepath", http.FS(ico.FS))
 
-		router.ServeFiles("/css/*filepath", http.FS(os.DirFS("css")))
-		router.ServeFiles("/js/*filepath", http.FS(js.FS))
-		router.ServeFiles("/ico/*filepath", http.FS(ico.FS))
-
-		router.Handler("GET", "/runs/:run", &webui.RunHandler{
-			DB:    db,
-			Blobs: blobs,
-		})
-
-		if config.GitHubApp.ID != 0 {
-			keyContent, err := config.GitHubApp.PrivateKey()
-			if err != nil {
-				return err
-			}
-
-			appsTransport, err := ghinstallation.NewAppsTransport(http.DefaultTransport, config.GitHubApp.ID, keyContent)
-			if err != nil {
-				return err
-			}
-
-			router.Handler("POST", "/api/github/hook", &github.WebhookHandler{
-				ExternalURL:   externalURL,
-				DB:            db,
-				Blobs:         blobs,
-				RunCtx:        ctx,
-				AppsTransport: appsTransport,
-				WebhookSecret: config.GitHubApp.WebhookSecret,
-				Dispatches:    dispatches,
-			})
-		}
-
-		server := &http.Server{
-			Addr:    config.HTTPAddr,
-			Handler: http.MaxBytesHandler(router, MaxBytes),
-			BaseContext: func(net.Listener) context.Context {
-				return ctx
-			},
-		}
-
-		go func() {
-			<-ctx.Done()
-
-			logger.Warn("interrupted; stopping gracefully")
-
-			// just passing ctx along to immediately interrupt everything
-			server.Shutdown(ctx)
-		}()
-
-		logger.Info("listening",
-			zap.String("protocol", "http"),
-			zap.String("addr", config.HTTPAddr))
-
-		return server.ListenAndServe()
+	router.Handler("GET", "/runs/:run", &webui.RunHandler{
+		DB:    db,
+		Blobs: blobs,
 	})
+
+	if config.GitHubApp.ID != 0 {
+		keyContent, err := config.GitHubApp.PrivateKey()
+		if err != nil {
+			return err
+		}
+
+		appsTransport, err := ghinstallation.NewAppsTransport(http.DefaultTransport, config.GitHubApp.ID, keyContent)
+		if err != nil {
+			return err
+		}
+
+		router.Handler("POST", "/api/github/hook", &github.WebhookHandler{
+			ExternalURL:   externalURL,
+			DB:            db,
+			Blobs:         blobs,
+			RunCtx:        ctx,
+			AppsTransport: appsTransport,
+			WebhookSecret: config.GitHubApp.WebhookSecret,
+			Dispatches:    dispatches,
+		})
+	}
+
+	server := &http.Server{
+		Addr:    config.HTTPAddr,
+		Handler: http.MaxBytesHandler(router, MaxBytes),
+		BaseContext: func(net.Listener) context.Context {
+			return ctx
+		},
+	}
+
+	go func() {
+		<-ctx.Done()
+		logger.Warn("interrupted; stopping gracefully")
+		server.Shutdown(context.Background())
+	}()
+
+	logger.Info("listening",
+		zap.String("protocol", "http"),
+		zap.String("addr", config.HTTPAddr))
+
+	return server.ListenAndServe()
 }
