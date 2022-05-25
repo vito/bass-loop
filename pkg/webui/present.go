@@ -13,11 +13,18 @@ import (
 	"github.com/vito/invaders"
 )
 
-type Vertex struct {
+type VertexTemplateContext struct {
+	Num int
+
 	*models.Vertex
 
 	Duration string
-	LogHTML  template.HTML
+	Lines    []Line
+}
+
+type Line struct {
+	Number  int
+	Content template.HTML
 }
 
 var tmpl = template.Must(template.ParseFS(html.FS, "*.tmpl"))

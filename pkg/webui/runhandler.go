@@ -27,7 +27,7 @@ type RunTemplateContext struct {
 	Run       *models.Run
 	ThunkName string
 	Avatar    template.HTML
-	Vertexes  []Vertex
+	Vertexes  []VertexTemplateContext
 }
 
 func (rtc RunTemplateContext) Duration() string {
@@ -77,8 +77,8 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return vs[i].EndTime.Time().Before(vs[j].EndTime.Time())
 	})
 
-	var vertexes []Vertex
-	for _, v := range vs {
+	var vertexes []VertexTemplateContext
+	for vn, v := range vs {
 		if strings.Contains(v.Name, "[hide]") {
 			continue
 		}
@@ -88,15 +88,33 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			logger.Error("failed to get vertex log", zap.Error(err))
 		}
 
+		var lines []Line
+		for i, content := range strings.Split(string(logHTML), "\n") {
+			lines = append(lines, Line{
+				Number:  i + 1,
+				Content: template.HTML(content),
+			})
+		}
+
+		// trim trailing empty lines
+		for i := len(lines) - 1; i >= 0; i-- {
+			if lines[i].Content == "" {
+				lines = lines[:i]
+			} else {
+				break
+			}
+		}
+
 		var dur time.Duration
 		if v.EndTime != nil {
 			dur = v.EndTime.Time().Sub(v.StartTime.Time())
 		}
 
-		vertexes = append(vertexes, Vertex{
+		vertexes = append(vertexes, VertexTemplateContext{
+			Num:      vn + 1,
 			Vertex:   v,
 			Duration: duration(dur),
-			LogHTML:  template.HTML(logHTML),
+			Lines:    lines,
 		})
 	}
 

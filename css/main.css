@@ -1482,6 +1482,9 @@ body {
     max-width: none;
   }
 }
+.vertex {
+  line-height: 20px;
+}
 .vertex .vertex-info {
   display: flex;
   flex-direction: row;
@@ -1503,9 +1506,43 @@ body {
 }
 .vertex .vertex-logs {
   margin: 0;
-  line-height: 20px;
   font-size: 16px;
   white-space: pre-wrap;
+}
+.vertex .vertex-logs tr {
+  position: relative;
+}
+.vertex .vertex-logs td.number {
+  width: 100px;
+  text-align: right;
+  position: absolute;
+  left: -100px;
+}
+.vertex .vertex-logs td.number a {
+  text-decoration: none;
+  color: var(--base04);
+}
+.vertex .vertex-logs td.number a:before {
+  content: attr(data-line-number);
+  font-family: 'Iosevka', monospace;
+  text-align: right;
+}
+.vertex .vertex-logs td.number a:hover {
+  cursor: pointer;
+  color: var(--base05);
+}
+.vertex .vertex-logs td.number:target {
+  background: var(--base01);
+}
+.vertex .vertex-logs td.number:target a {
+  color: var(--base0A);
+}
+.vertex .vertex-logs td.content {
+  font-family: 'Iosevka', monospace;
+  white-space: pre;
+}
+.vertex .vertex-logs td.content:empty {
+  content: "x";
 }
 .vertex .vertex-logs .ansi-line:before {
   font-family: 'Iosevka', monospace;
