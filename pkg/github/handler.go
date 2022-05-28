@@ -29,15 +29,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var defaultConfigTODO = bass.Config{
-	Runtimes: []bass.RuntimeConfig{
-		{
-			Platform: bass.LinuxPlatform,
-			Runtime:  runtimes.BuildkitName,
-		},
-	},
-}
-
 type WebhookHandler struct {
 	ExternalURL   *url.URL
 	DB            *sql.DB
@@ -96,11 +87,10 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventType, deliveryID strin
 
 	if event.Repo != nil && event.Installation != nil {
 		return h.dispatch(
-			ctx,
+			zapctx.ToContext(bass.ForkTrace(h.RunCtx), logger),
 			event.Installation.GetID(),
 			event.Sender,
-			event.Repo.GetOwner().GetLogin(),
-			event.Repo.GetName(),
+			event.Repo,
 			eventType,
 			deliveryID,
 			payload,
@@ -112,32 +102,14 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventType, deliveryID strin
 	return nil
 }
 
-func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *github.User, user, repo string, eventType, deliveryID string, payload []byte) error {
+func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *github.User, repo *github.Repository, eventType, deliveryID string, payload []byte) error {
 	logger := zapctx.FromContext(ctx)
-
-	runCtx := bass.ForkTrace(h.RunCtx)
 
 	var payloadScope *bass.Scope
 	err := json.Unmarshal(payload, &payloadScope)
 	if err != nil {
 		return fmt.Errorf("payload->scope: %w", err)
 	}
-
-	scope := bass.NewStandardScope()
-	scope.Set("*delivery-id*", bass.String(deliveryID))
-	scope.Set("*event*", bass.String(eventType))
-	scope.Set("*payload*", payloadScope)
-	scope.Set("*github*", (&BassGitHubClient{
-		ExternalURL: h.ExternalURL,
-		DB:          h.DB,
-		GH: github.NewClient(&http.Client{
-			Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),
-		}),
-		Blobs:  h.Blobs,
-		Sender: sender,
-		User:   user,
-		Repo:   repo,
-	}).Scope())
 
 	var runtimeConfigs []bass.RuntimeConfig
 	rts, err := models.RuntimesByUserID(ctx, h.DB, sender.GetNodeID())
@@ -183,25 +155,63 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 	if err != nil {
 		return fmt.Errorf("pool: %w", err)
 	}
-	runCtx = bass.WithRuntimePool(runCtx, pool)
+
+	ctx = bass.WithRuntimePool(ctx, pool)
+
+	ghClient := github.NewClient(&http.Client{
+		Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),
+	})
+
+	bassGhClient := &BassGitHubClient{
+		ExternalURL: h.ExternalURL,
+		DB:          h.DB,
+		GH:          ghClient,
+		Blobs:       h.Blobs,
+		Sender:      sender,
+		Repo:        repo,
+	}
+
+	repoUser := repo.GetOwner().GetLogin()
+
+	branch, _, err := ghClient.Repositories.GetBranch(ctx, repoUser, repo.GetName(), repo.GetDefaultBranch(), true)
+	if err != nil {
+		return fmt.Errorf("get branch: %w", err)
+	}
+
+	projectFp := NewGHPath(ctx, ghClient, repo, branch, "project")
 
 	h.Dispatches.Go(func() error {
-		_, err = bass.EvalString(runCtx, scope, `
-		(use (.git (linux/alpine/git)))
+		thunk := bass.Thunk{
+			Cmd: bass.ThunkCmd{
+				FS: &projectFp,
+			},
+		}
 
-		(let [{:repository
-					 {:clone-url url
-						:default-branch branch
-						:pushed-at pushed-at}} *payload*
-					sha (git:ls-remote url branch pushed-at)
-					src (git:checkout url sha)
-					project (load (src/project))]
-			(project:github-event *payload* *event* *github*))
-	`)
+		module, err := runtimes.NewBass(pool).Load(ctx, thunk)
 		if err != nil {
-			logger.Error("delivery failed", zap.String("delivery", deliveryID), zap.Error(err))
-			cli.WriteError(runCtx, err)
+			logger.Error("delivery failed", zap.Error(err))
+			cli.WriteError(ctx, err)
 			return err
+		}
+
+		var comb bass.Combiner
+		if err := module.GetDecode("github-event", &comb); err != nil {
+			return fmt.Errorf("call github event hook: %w", err)
+		}
+
+		call := comb.Call(
+			ctx,
+			bass.NewList(
+				payloadScope,
+				bass.String(eventType),
+				bassGhClient.Scope(),
+			),
+			module,
+			bass.Identity,
+		)
+
+		if _, err := bass.Trampoline(ctx, call); err != nil {
+			return fmt.Errorf("hook: %w", err)
 		}
 
 		return err
@@ -216,7 +226,7 @@ type BassGitHubClient struct {
 	Blobs       *blob.Bucket
 	GH          *github.Client
 	Sender      *github.User
-	User, Repo  string
+	Repo        *github.Repository
 }
 
 func (client *BassGitHubClient) Scope() *bass.Scope {
@@ -258,7 +268,7 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 		}, "\n")),
 	}
 
-	checkRun, _, err := client.GH.Checks.CreateCheckRun(ctx, client.User, client.Repo, github.CreateCheckRunOptions{
+	checkRun, _, err := client.GH.Checks.CreateCheckRun(ctx, client.Repo.GetOwner().GetLogin(), client.Repo.GetName(), github.CreateCheckRunOptions{
 		Name:       name,
 		HeadSHA:    sha,
 		Status:     github.String("in_progress"),
@@ -385,13 +395,19 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 		progress.Summarize(colorable.NewNonColorable(outBuf))
 		output.Text = github.String("```\n" + outBuf.String() + "\n```")
 
-		_, _, err := client.GH.Checks.UpdateCheckRun(ctx, client.User, client.Repo, checkRun.GetID(), github.UpdateCheckRunOptions{
-			Name:        name,
-			Status:      github.String("completed"),
-			Conclusion:  github.String(conclusion),
-			CompletedAt: &github.Timestamp{Time: completedAt.Time()},
-			Output:      output,
-		})
+		_, _, err := client.GH.Checks.UpdateCheckRun(
+			ctx,
+			client.Repo.GetOwner().GetLogin(),
+			client.Repo.GetName(),
+			checkRun.GetID(),
+			github.UpdateCheckRunOptions{
+				Name:        name,
+				Status:      github.String("completed"),
+				Conclusion:  github.String(conclusion),
+				CompletedAt: &github.Timestamp{Time: completedAt.Time()},
+				Output:      output,
+			},
+		)
 		if err != nil {
 			return fmt.Errorf("update check run: %w", err)
 		}
