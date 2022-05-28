@@ -162,6 +162,40 @@ func RunsByThunkDigest(ctx context.Context, db DB, thunkDigest string) ([]*Run, 
 	return res, nil
 }
 
+// RunsByUserID retrieves a row from 'runs' as a Run.
+//
+// Generated from index 'idx_thunk_runs_user_id'.
+func RunsByUserID(ctx context.Context, db DB, userID string) ([]*Run, error) {
+	// query
+	const sqlstr = `SELECT ` +
+		`id, user_id, thunk_digest, start_time, end_time, succeeded ` +
+		`FROM runs ` +
+		`WHERE user_id = $1`
+	// run
+	logf(sqlstr, userID)
+	rows, err := db.QueryContext(ctx, sqlstr, userID)
+	if err != nil {
+		return nil, logerror(err)
+	}
+	defer rows.Close()
+	// process
+	var res []*Run
+	for rows.Next() {
+		r := Run{
+			_exists: true,
+		}
+		// scan
+		if err := rows.Scan(&r.ID, &r.UserID, &r.ThunkDigest, &r.StartTime, &r.EndTime, &r.Succeeded); err != nil {
+			return nil, logerror(err)
+		}
+		res = append(res, &r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, logerror(err)
+	}
+	return res, nil
+}
+
 // RunByID retrieves a row from 'runs' as a Run.
 //
 // Generated from index 'sqlite_autoindex_runs_1'.
@@ -187,4 +221,11 @@ func RunByID(ctx context.Context, db DB, id string) (*Run, error) {
 // Generated from foreign key 'runs_thunk_digest_fkey'.
 func (r *Run) Thunk(ctx context.Context, db DB) (*Thunk, error) {
 	return ThunkByDigest(ctx, db, r.ThunkDigest)
+}
+
+// User returns the User associated with the Run's (UserID).
+//
+// Generated from foreign key 'runs_user_id_fkey'.
+func (r *Run) User(ctx context.Context, db DB) (*User, error) {
+	return UserByID(ctx, db, r.UserID)
 }
