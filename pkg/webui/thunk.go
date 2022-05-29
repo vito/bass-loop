@@ -12,7 +12,6 @@ import (
 	"github.com/alecthomas/chroma/styles"
 	"github.com/julienschmidt/httprouter"
 	"github.com/vito/bass-loop/pkg/models"
-	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/zapctx"
 	"go.uber.org/zap"
 	"gocloud.dev/blob"
@@ -24,10 +23,10 @@ type ThunkHandler struct {
 }
 
 type ThunkTemplateContext struct {
-	Thunk  bass.Thunk
+	Thunk  *models.Thunk
 	Avatar template.HTML
-	Runs   []RunTemplateContext
 	JSON   template.HTML
+	Runs   []RunTemplateContext
 }
 
 func (handler *ThunkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -43,15 +42,7 @@ func (handler *ThunkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var bassThunk bass.Thunk
-	err = bass.UnmarshalJSON(thunk.JSON, &bassThunk)
-	if err != nil {
-		logger.Error("failed to unmarshal thunk", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	avatar, err := thunkAvatar(bassThunk)
+	avatar, err := thunkAvatar(thunk.Digest)
 	if err != nil {
 		logger.Error("failed to render avatar", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -81,18 +72,9 @@ func (handler *ThunkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		runContexts = append(runContexts, RunTemplateContext{
 			Run:    run,
 			User:   user,
-			Thunk:  bassThunk,
+			Thunk:  thunk,
 			Avatar: avatar,
 		})
-	}
-
-	buf := new(bytes.Buffer)
-	enc := bass.NewEncoder(buf)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(bassThunk); err != nil {
-		logger.Error("failed to encode thunk", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	lexer := lexers.Get("json")
@@ -100,7 +82,7 @@ func (handler *ThunkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		lexer = lexers.Fallback
 	}
 
-	iterator, err := lexer.Tokenise(nil, buf.String())
+	iterator, err := lexer.Tokenise(nil, string(thunk.JSON))
 	if err != nil {
 		logger.Error("failed to tokenise JSON", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -121,7 +103,7 @@ func (handler *ThunkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = tmpl.ExecuteTemplate(w, "thunk.tmpl", &ThunkTemplateContext{
-		Thunk:  bassThunk,
+		Thunk:  thunk,
 		Avatar: avatar,
 		Runs:   runContexts,
 		JSON:   template.HTML(hlJSON.String()),

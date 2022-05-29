@@ -23,11 +23,11 @@
         </span>
       </div>
 
-      <h2>thunks</h2>
+      <h2>thunk runs</h2>
 
       <ul class="thunks">
-      {{range .Thunks}}
-        <li>{{.Avatar}}<a class="name" href="/thunks/{{.Thunk.Name}}">{{.Thunk.Name}}</a> <code>{{.Thunk.Cmdline}}</code></li>
+      {{range .Runs}}
+        <li>{{.Avatar}}<a class="name" href="/thunks/{{.Thunk.Digest}}">{{.Thunk.Digest}}</a> run {{template "run-summary.tmpl" .}}</li>
       {{end}}
       </ul>
 

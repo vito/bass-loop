@@ -30,6 +30,7 @@ body {
         list-style-type: none;
         margin: 0;
         padding: 0;
+        color: var(--base04);
 
         a {
           margin-left: 0;
@@ -40,21 +41,23 @@ body {
 
       .name {
         font-family: @monospace-font;
-        color: var(--base04);
+        color: var(--base05);
       }
     }
   }
 }
 
-.thunks .name,
-.thunk-runs .name {
-  font-family: @monospace-font;
+.thunks, .thunk-runs {
   color: var(--base04);
-  font-weight: bold;
-  text-decoration: none;
+  .name {
+    font-family: @monospace-font;
+    color: var(--base05);
+    font-weight: bold;
+    text-decoration: none;
 
-  &:hover {
-    text-decoration: underline;
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
 
@@ -169,4 +172,8 @@ body {
       }
     }
   }
+}
+
+.highlight.wrap pre {
+  white-space: pre-wrap;
 }

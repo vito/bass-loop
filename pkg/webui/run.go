@@ -11,7 +11,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/vito/bass-loop/pkg/blobs"
 	"github.com/vito/bass-loop/pkg/models"
-	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/zapctx"
 	"go.uber.org/zap"
 	"gocloud.dev/blob"
@@ -26,7 +25,7 @@ type RunHandler struct {
 type RunTemplateContext struct {
 	Run      *models.Run
 	User     *models.User
-	Thunk    bass.Thunk
+	Thunk    *models.Thunk
 	Avatar   template.HTML
 	Vertexes []VertexTemplateContext
 }
@@ -55,14 +54,6 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	thunk, err := run.Thunk(ctx, handler.DB)
 	if err != nil {
 		logger.Error("failed to get run", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var bassThunk bass.Thunk
-	err = bass.UnmarshalJSON(thunk.JSON, &bassThunk)
-	if err != nil {
-		logger.Error("failed to unmarshal thunk", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -126,7 +117,7 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	avatar, err := thunkAvatar(bassThunk)
+	avatar, err := thunkAvatar(thunk.Digest)
 	if err != nil {
 		logger.Error("failed to render avatar", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -136,7 +127,7 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err = tmpl.ExecuteTemplate(w, "run.tmpl", &RunTemplateContext{
 		Run:      run,
 		User:     user,
-		Thunk:    bassThunk,
+		Thunk:    thunk,
 		Avatar:   avatar,
 		Vertexes: vertexes,
 	})

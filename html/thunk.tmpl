@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
-    <title>thunk {{.Thunk.Name}}</title>
+    <title>thunk {{.Thunk.Digest}}</title>
     <link rel="stylesheet" type="text/css" href="/css/iosevka.css" />
     <link rel="stylesheet" type="text/css" href="/css/main.css" />
     <script type="text/javascript" src="/js/switcher.js"></script>
@@ -19,7 +19,7 @@
           <div class="heading-and-name">
             <h1>thunk</h1>
             <ul>
-              <li><strong>thunk</strong> <a class="name" href="/thunks/{{.Thunk.Name}}">{{.Thunk.Name}}</a></li>
+              <li><strong>thunk</strong> <a class="name" href="/thunks/{{.Thunk.Digest}}">{{.Thunk.Digest}}</a></li>
             </ul>
           </div>
         </span>
@@ -35,7 +35,7 @@
 
       <h2>json</h2>
 
-      <div class="highlight" contenteditable="true">
+      <div class="highlight wrap" contenteditable="true">
         {{.JSON}}
       </div>
 

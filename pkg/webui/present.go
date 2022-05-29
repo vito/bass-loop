@@ -3,13 +3,14 @@ package webui
 import (
 	"bytes"
 	"fmt"
+	"hash/fnv"
 	"html/template"
+	"math/rand"
 	"time"
 
 	svg "github.com/ajstarks/svgo"
 	"github.com/vito/bass-loop/html"
 	"github.com/vito/bass-loop/pkg/models"
-	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/invaders"
 )
 
@@ -41,11 +42,14 @@ func duration(dt time.Duration) string {
 	return fmt.Sprintf("%.[2]*[1]fs", sec, prec)
 }
 
-func thunkAvatar(thunk bass.Thunk) (template.HTML, error) {
-	invader, err := thunk.Avatar()
-	if err != nil {
+func thunkAvatar(thunkDigest string) (template.HTML, error) {
+	h := fnv.New64a()
+	if _, err := h.Write([]byte(thunkDigest)); err != nil {
 		return "", err
 	}
+
+	invader := &invaders.Invader{}
+	invader.Set(rand.New(rand.NewSource(int64(h.Sum64()))))
 
 	avatarSvg := new(bytes.Buffer)
 	canvas := svg.New(avatarSvg)

@@ -1470,6 +1470,7 @@ body {
   list-style-type: none;
   margin: 0;
   padding: 0;
+  color: var(--base04);
 }
 .header.thunk .logo-and-text .heading-and-name ul a {
   margin-left: 0;
@@ -1478,12 +1479,16 @@ body {
 }
 .header.thunk .logo-and-text .heading-and-name .name {
   font-family: 'Iosevka', monospace;
+  color: var(--base05);
+}
+.thunks,
+.thunk-runs {
   color: var(--base04);
 }
 .thunks .name,
 .thunk-runs .name {
   font-family: 'Iosevka', monospace;
-  color: var(--base04);
+  color: var(--base05);
   font-weight: bold;
   text-decoration: none;
 }
@@ -1576,4 +1581,7 @@ body {
   font-family: 'Iosevka', monospace;
   content: "  │ ";
   color: var(--base03);
+}
+.highlight.wrap pre {
+  white-space: pre-wrap;
 }
