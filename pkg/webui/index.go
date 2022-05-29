@@ -60,16 +60,12 @@ func (handler *IndexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		logger.Debug("generating avatar", zap.String("thunk", thunk.Digest))
-
 		avatar, err := thunkAvatar(thunk.Digest)
 		if err != nil {
 			logger.Error("failed to render avatar", zap.Error(err))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		logger.Debug("generated avatar", zap.String("thunk", thunk.Digest))
 
 		contexts = append(contexts, RunTemplateContext{
 			Run:    run,
