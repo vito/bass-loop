@@ -24,17 +24,18 @@ type RunHandler struct {
 }
 
 type RunTemplateContext struct {
-	Run       *models.Run
-	ThunkName string
-	Avatar    template.HTML
-	Vertexes  []VertexTemplateContext
+	Run      *models.Run
+	User     *models.User
+	Thunk    bass.Thunk
+	Avatar   template.HTML
+	Vertexes []VertexTemplateContext
 }
 
 func (rtc RunTemplateContext) Duration() string {
 	if rtc.Run.EndTime != nil {
 		return duration(rtc.Run.EndTime.Time().Sub(rtc.Run.StartTime.Time()))
 	} else {
-		return "..."
+		return ""
 	}
 }
 
@@ -118,6 +119,13 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	user, err := run.User(ctx, handler.DB)
+	if err != nil {
+		logger.Error("failed to render avatar", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	avatar, err := thunkAvatar(bassThunk)
 	if err != nil {
 		logger.Error("failed to render avatar", zap.Error(err))
@@ -126,10 +134,11 @@ func (handler *RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = tmpl.ExecuteTemplate(w, "run.tmpl", &RunTemplateContext{
-		Run:       run,
-		ThunkName: bassThunk.Name(),
-		Avatar:    avatar,
-		Vertexes:  vertexes,
+		Run:      run,
+		User:     user,
+		Thunk:    bassThunk,
+		Avatar:   avatar,
+		Vertexes: vertexes,
 	})
 	if err != nil {
 		logger.Error("failed to execute template", zap.Error(err))

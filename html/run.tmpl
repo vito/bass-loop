@@ -13,14 +13,14 @@
   </head>
   <body>
     <div class="page">
-      <div class="header">
+      <div class="header thunk">
         <span class="logo-and-text">
           {{.Avatar}}
           <div class="heading-and-name">
             <h1>run log</h1>
             <ul>
-              <li><strong>thunk</strong> <a class="name" href="/thunks/{{.ThunkName}}">{{.ThunkName}}</a></li>
-              <li><strong>run</strong> <a class="name" href="/runs/{{.Run.ID}}">{{.Run.ID}}</a> {{.Duration}}</li>
+              <li><strong>thunk</strong> <a class="name" href="/thunks/{{.Thunk.Name}}">{{.Thunk.Name}}</a></li>
+              <li><strong>run</strong> {{template "run-summary.tmpl" .}}</li>
             </ul>
           </div>
         </span>

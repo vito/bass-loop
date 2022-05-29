@@ -13,3 +13,7 @@ migrate -path ./migrations -database "sqlite3://${db}" up
 
 go install github.com/xo/xo@latest
 xo schema --out ./pkg/models "sqlite3://${db}"
+
+xo query --out ./pkg/models "sqlite3://${db}" -M -B -T ThunkListing -2 <<EOF
+SELECT digest, json FROM thunks
+EOF

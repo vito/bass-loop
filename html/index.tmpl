@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
-    <title>thunk {{.Thunk.Name}}</title>
+    <title>bass loop</title>
     <link rel="stylesheet" type="text/css" href="/css/iosevka.css" />
     <link rel="stylesheet" type="text/css" href="/css/main.css" />
     <script type="text/javascript" src="/js/switcher.js"></script>
@@ -13,31 +13,23 @@
   </head>
   <body>
     <div class="page">
-      <div class="header thunk">
+      <div class="header">
         <span class="logo-and-text">
-          {{.Avatar}}
+          {{template "logo.tmpl"}}
+
           <div class="heading-and-name">
-            <h1>thunk</h1>
-            <ul>
-              <li><strong>thunk</strong> <a class="name" href="/thunks/{{.Thunk.Name}}">{{.Thunk.Name}}</a></li>
-            </ul>
+            <a href="/">bass loop</a>
           </div>
         </span>
       </div>
 
-      <h2>runs</h2>
+      <h2>thunks</h2>
 
-      <ul class="thunk-runs">
-      {{range .Runs}}
-        <li>{{template "run-summary.tmpl" .}}</li>
+      <ul class="thunks">
+      {{range .Thunks}}
+        <li>{{.Avatar}}<a class="name" href="/thunks/{{.Thunk.Name}}">{{.Thunk.Name}}</a> <code>{{.Thunk.Cmdline}}</code></li>
       {{end}}
       </ul>
-
-      <h2>json</h2>
-
-      <div class="highlight" contenteditable="true">
-        {{.JSON}}
-      </div>
 
       <div class="footer">
         <div class="choose-theme" id="choosetheme">

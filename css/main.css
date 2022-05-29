@@ -1449,33 +1449,61 @@ body {
   justify-content: flex-start;
   flex-direction: row;
 }
-.header .logo-and-text {
+.header.thunk .logo-and-text {
   justify-content: flex-start;
   align-items: center;
 }
-.header .logo-and-text svg {
+.header.thunk .logo-and-text svg {
   height: 99px;
 }
-.header .logo-and-text .heading-and-name {
+.header.thunk .logo-and-text .heading-and-name {
   display: flex;
   flex-direction: column;
   margin-left: 25px;
 }
-.header .logo-and-text .heading-and-name h1 {
+.header.thunk .logo-and-text .heading-and-name h1 {
   font-family: 'Roboto', Helvetica, Arial, Verdana, sans-serif;
   margin: 0;
   padding: 0;
 }
-.header .logo-and-text .heading-and-name ul {
+.header.thunk .logo-and-text .heading-and-name ul {
   list-style-type: none;
   margin: 0;
   padding: 0;
 }
-.header .logo-and-text .heading-and-name .name {
+.header.thunk .logo-and-text .heading-and-name ul a {
   margin-left: 0;
   line-height: 1;
-  font-size: 16px;
+  font-size: inherit;
+}
+.header.thunk .logo-and-text .heading-and-name .name {
+  font-family: 'Iosevka', monospace;
   color: var(--base04);
+}
+.thunks .name,
+.thunk-runs .name {
+  font-family: 'Iosevka', monospace;
+  color: var(--base04);
+  font-weight: bold;
+  text-decoration: none;
+}
+.thunks .name:hover,
+.thunk-runs .name:hover {
+  text-decoration: underline;
+}
+.thunks li svg {
+  width: 33px;
+  height: 33px;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+.run-summary a {
+  text-decoration: none;
+  color: var(--base04);
+  font-weight: bold;
+}
+.run-summary a:hover {
+  text-decoration: underline;
 }
 @media (min-width: 1024px) {
   .page {

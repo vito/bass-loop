@@ -5,7 +5,7 @@ body {
   flex-direction: row;
 }
 
-.header {
+.header.thunk {
   .logo-and-text {
     justify-content: flex-start;
     align-items: center;
@@ -30,15 +30,48 @@ body {
         list-style-type: none;
         margin: 0;
         padding: 0;
+
+        a {
+          margin-left: 0;
+          line-height: 1;
+          font-size: inherit;
+        }
       }
 
       .name {
-        margin-left: 0;
-        line-height: 1;
-        font-size: 16px;
+        font-family: @monospace-font;
         color: var(--base04);
       }
     }
+  }
+}
+
+.thunks .name,
+.thunk-runs .name {
+  font-family: @monospace-font;
+  color: var(--base04);
+  font-weight: bold;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.thunks li svg {
+  width: 33px;
+  height: 33px;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+.run-summary a {
+  text-decoration: none;
+  color: var(--base04);
+  font-weight: bold;
+
+  &:hover {
+    text-decoration: underline;
   }
 }
 

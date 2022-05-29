@@ -24,10 +24,10 @@ type ThunkHandler struct {
 }
 
 type ThunkTemplateContext struct {
-	ThunkName string
-	Avatar    template.HTML
-	Runs      []RunTemplateContext
-	JSON      template.HTML
+	Thunk  bass.Thunk
+	Avatar template.HTML
+	Runs   []RunTemplateContext
+	JSON   template.HTML
 }
 
 func (handler *ThunkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -71,10 +71,18 @@ func (handler *ThunkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var runContexts []RunTemplateContext
 	for _, run := range runs {
+		user, err := run.User(ctx, handler.DB)
+		if err != nil {
+			logger.Error("failed to get run user", zap.Error(err))
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		runContexts = append(runContexts, RunTemplateContext{
-			Run:       run,
-			ThunkName: bassThunk.Name(),
-			Avatar:    avatar,
+			Run:    run,
+			User:   user,
+			Thunk:  bassThunk,
+			Avatar: avatar,
 		})
 	}
 
@@ -113,10 +121,10 @@ func (handler *ThunkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = tmpl.ExecuteTemplate(w, "thunk.tmpl", &ThunkTemplateContext{
-		ThunkName: bassThunk.Name(),
-		Avatar:    avatar,
-		Runs:      runContexts,
-		JSON:      template.HTML(hlJSON.String()),
+		Thunk:  bassThunk,
+		Avatar: avatar,
+		Runs:   runContexts,
+		JSON:   template.HTML(hlJSON.String()),
 	})
 	if err != nil {
 		logger.Error("failed to execute template", zap.Error(err))
