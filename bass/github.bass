@@ -1,0 +1,38 @@
+(defn check-hook [checks git]
+  (defn start-checks [src sha github]
+    (map-pairs
+      (fn [name thunk] (github:start-check thunk (str name) sha))
+      (scope->list (checks src))))
+
+  (fn [payload event github]
+    (case event
+      "check_suite"
+      (case payload
+        {:action "requested"
+         :repository {:clone-url clone-url}
+         :check-suite {:head-sha sha}}
+        (start-checks (git:checkout clone-url sha) sha github)
+
+        {:action "rerequested"
+         :repository {:clone-url clone-url}
+         :check-suite {:head-sha sha}}
+        (start-checks (git:checkout clone-url sha) sha github)
+
+        unknown
+        (log "ignoring action" :event event :action unknown))
+
+      "check_run"
+      (case payload
+        {:action "rerequested"
+         :repository {:clone-url clone-url}
+         :check-run {:name name
+                     :head-sha sha}}
+        (let [selector (string->symbol name)
+              thunk (selector (checks (git:checkout clone-url sha)))]
+          (github:start-check thunk name sha))
+
+        unknown
+        (log "ignoring action" :event event :action unknown))
+
+      _
+      (log "ignoring event" :event event :payload (keys payload)))))
