@@ -195,8 +195,8 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 		}
 
 		var comb bass.Combiner
-		if err := module.GetDecode("github-event", &comb); err != nil {
-			return fmt.Errorf("call github event hook: %w", err)
+		if err := module.GetDecode("github-hook", &comb); err != nil {
+			return fmt.Errorf("get github-hook: %w", err)
 		}
 
 		call := comb.Call(
