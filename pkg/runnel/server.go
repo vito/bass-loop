@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-github/v43/github"
 	flag "github.com/spf13/pflag"
 	"github.com/vito/bass-loop/pkg/models"
+	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/zapctx"
 	"go.uber.org/zap"
 	"gocloud.dev/blob"
@@ -135,7 +136,7 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 }
 
 func (server *Server) HandleForwardCommand(s ssh.Session, flags *flag.FlagSet, args []string) {
-	logger := loggerFromContext(s.Context())
+	logger := bass.LoggerTo(s).With(zap.String("side", "server"))
 
 	var driver string
 	flags.StringVarP(&driver, "runtime", "r", "", "runtime driver")
@@ -145,32 +146,29 @@ func (server *Server) HandleForwardCommand(s ssh.Session, flags *flag.FlagSet, a
 	flags.StringVar(&arch, "arch", "amd64", "runtime platform architecture (i.e. GOARCH)")
 
 	if err := flags.Parse(args); err != nil {
-		logger.Warn("failed to parse flags", zap.Error(err))
-		fmt.Fprintln(s, err)
+		logger.Error("failed to parse flags", zap.Error(err))
 		s.Exit(2)
 		return
 	}
 
 	if driver == "" {
-		fmt.Fprintln(s, "missing --runtime/-r flag")
+		logger.Error("missing --runtime/-r flag")
 		s.Exit(2)
 		return
 	}
 
 	userIDVal := s.Context().Value(userIdKey{})
 	if userIDVal == nil {
-		logger.Warn("user id not found in context - this should never happen")
-		fmt.Fprintln(s, "user id not found in context - this should never happen")
+		logger.Error("user id not found in context")
 		s.Exit(1)
 		return
 	}
 
-	fmt.Fprintln(s, "reading runtime config....")
+	logger.Debug("reading runtime config")
 
 	var cfg json.RawMessage
 	if err := json.NewDecoder(s).Decode(&cfg); err != nil {
-		logger.Warn("failed to decode config", zap.Error(err))
-		fmt.Fprintln(s, "failed to decode config:", err)
+		logger.Error("failed to decode config", zap.Error(err))
 		s.Exit(1)
 		return
 	}
@@ -189,12 +187,11 @@ func (server *Server) HandleForwardCommand(s ssh.Session, flags *flag.FlagSet, a
 
 	if err := runtime.Insert(s.Context(), server.DB); err != nil {
 		logger.Error("failed to save runtime", zap.Error(err))
-		fmt.Fprintln(s, "failed to save runtime:", err)
 		s.Exit(1)
 		return
 	}
 
-	fmt.Fprintln(s, "registered")
+	logger.Info("registered")
 
 	heartbeat := time.NewTicker(time.Minute)
 	defer heartbeat.Stop()
@@ -204,7 +201,6 @@ func (server *Server) HandleForwardCommand(s ssh.Session, flags *flag.FlagSet, a
 		case <-s.Context().Done():
 			if err := runtime.Delete(context.Background(), server.DB); err != nil {
 				logger.Error("failed to delete runtime", zap.Error(err))
-				fmt.Fprintln(s, "failed to delete runtime:", err)
 				s.Exit(1)
 				return
 			}
@@ -217,12 +213,11 @@ func (server *Server) HandleForwardCommand(s ssh.Session, flags *flag.FlagSet, a
 
 			if err := runtime.Update(s.Context(), server.DB); err != nil {
 				logger.Error("failed to heartbeat runtime", zap.Error(err))
-				fmt.Fprintln(s, "failed to heartbeat runtime:", err)
 				s.Exit(1)
 				return
 			}
 
-			fmt.Fprintln(s, "heartbeated")
+			logger.Debug("heartbeated")
 		}
 	}
 }
