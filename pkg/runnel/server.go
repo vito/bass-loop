@@ -97,8 +97,13 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 			StreamlocalForwardChannelType:       forwardHandler.HandleStreamlocalForward,
 			CancelStreamlocalForwardChannelType: forwardHandler.HandleCancelStreamlocalForward,
 
+			KeepaliveRequestType: func(ctx ssh.Context, _ *ssh.Server, _ *gossh.Request) (bool, []byte) {
+				logger.Debug("keepalive", zap.String("remote", ctx.RemoteAddr().String()))
+				return true, nil
+			},
+
 			"default": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
-				logger.Warn("unhandled request", zap.String("request", req.Type))
+				logger.Warn("unhandled request", zap.String("request", req.Type), zap.String("remote", ctx.RemoteAddr().String()))
 				return true, nil
 			},
 		},

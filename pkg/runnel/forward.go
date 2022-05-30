@@ -28,6 +28,8 @@ const (
 	ForwardedStreamlocalChannelType     = "forwarded-streamlocal@openssh.com"
 	StreamlocalForwardChannelType       = "streamlocal-forward@openssh.com"
 	CancelStreamlocalForwardChannelType = "cancel-streamlocal-forward@openssh.com"
+
+	KeepaliveRequestType = "keepalive"
 )
 
 type ForwardHandler struct {
