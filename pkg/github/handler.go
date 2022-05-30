@@ -128,14 +128,14 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 			return fmt.Errorf("get services: %w", err)
 		}
 
-		addrs := &bass.RuntimeAddrs{}
+		addrs := bass.RuntimeAddrs{}
 		for _, svc := range svcs {
 			u, err := url.Parse(svc.Addr)
 			if err != nil {
 				return fmt.Errorf("parse service url %q: %w", svc.Addr, err)
 			}
 
-			addrs.SetService(svc.Service, u)
+			addrs[svc.Service] = u
 		}
 
 		runtimeConfigs = append(runtimeConfigs, bass.RuntimeConfig{
@@ -144,7 +144,7 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 				Arch: rt.Arch,
 			},
 			Runtime: rt.Driver,
-			Addrs:   *addrs,
+			Addrs:   addrs,
 			Config:  cfg,
 		})
 	}
@@ -181,6 +181,8 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 	projectFp := NewGHPath(ctx, ghClient, repo, branch, "project")
 
 	h.Dispatches.Go(func() error {
+		defer pool.Close()
+
 		thunk := bass.Thunk{
 			Cmd: bass.ThunkCmd{
 				FS: &projectFp,
