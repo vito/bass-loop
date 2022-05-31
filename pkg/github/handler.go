@@ -149,15 +149,6 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 		})
 	}
 
-	pool, err := runtimes.NewPool(&bass.Config{
-		Runtimes: runtimeConfigs,
-	})
-	if err != nil {
-		return fmt.Errorf("pool: %w", err)
-	}
-
-	ctx = bass.WithRuntimePool(ctx, pool)
-
 	ghClient := github.NewClient(&http.Client{
 		Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),
 	})
@@ -173,15 +164,26 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 
 	repoUser := repo.GetOwner().GetLogin()
 
-	branch, _, err := ghClient.Repositories.GetBranch(ctx, repoUser, repo.GetName(), repo.GetDefaultBranch(), true)
-	if err != nil {
-		return fmt.Errorf("get branch: %w", err)
-	}
-
-	projectFp := NewGHPath(ctx, ghClient, repo, branch, "project")
-
 	h.Dispatches.Go(func() error {
+		ctx, runs := bass.TrackRuns(ctx)
+
+		pool, err := runtimes.NewPool(&bass.Config{
+			Runtimes: runtimeConfigs,
+		})
+		if err != nil {
+			return fmt.Errorf("pool: %w", err)
+		}
+
 		defer pool.Close()
+
+		ctx = bass.WithRuntimePool(ctx, pool)
+
+		branch, _, err := ghClient.Repositories.GetBranch(ctx, repoUser, repo.GetName(), repo.GetDefaultBranch(), true)
+		if err != nil {
+			return fmt.Errorf("get branch: %w", err)
+		}
+
+		projectFp := NewGHPath(ctx, ghClient, repo, branch, "project")
 
 		thunk := bass.Thunk{
 			Cmd: bass.ThunkCmd{
@@ -216,7 +218,9 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 			return fmt.Errorf("hook: %w", err)
 		}
 
-		return err
+		runs.Wait()
+
+		return nil
 	})
 
 	return nil
