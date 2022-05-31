@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/adrg/xdg v0.3.4
 	github.com/ajstarks/svgo v0.0.0-20210406150507-75cfd577ce75
+	github.com/alecthomas/chroma v0.9.2
 	github.com/aoldershaw/ansi v0.0.0-20210128170437-8c5426635e02
 	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/clarafu/envstruct v0.0.0-20210414180622-62f3047362cf
@@ -17,11 +18,12 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/spf13/pflag v1.0.5
-	github.com/vito/bass v0.5.1-0.20220530232350-f189b451b2f0
+	github.com/vito/bass v0.5.1-0.20220531021324-71e4bbc58e6d
 	github.com/vito/invaders v0.0.2
 	github.com/vito/progrock v0.0.0-20220404031818-4f9564b3a350
 	go.uber.org/zap v1.21.0
 	gocloud.dev v0.25.0
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
 
@@ -40,7 +42,6 @@ require (
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
-	github.com/alecthomas/chroma v0.9.2 // indirect
 	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/aws/aws-sdk-go v1.43.31 // indirect
@@ -102,7 +103,6 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mattn/go-tty v0.0.3 // indirect
-	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/buildkit v0.10.0 // indirect
 	github.com/moby/sys/signal v0.6.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
@@ -130,10 +130,9 @@ require (
 	go.opentelemetry.io/proto/otlp v0.12.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/crypto v0.0.0-20220331220935-ae2d96664a29 // indirect
 	golang.org/x/net v0.0.0-20220401154927-543a649e0bdd // indirect
 	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a // indirect
-	golang.org/x/sys v0.0.0-20220330033206-e17cdc41300f // indirect
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
