@@ -15,10 +15,9 @@
     <div class="page">
       <div class="header">
         <span class="logo-and-text">
-          {{template "logo.tmpl"}}
-
+          <a class="logo" href="/">{{template "logo.tmpl"}}</a>
           <div class="heading-and-name">
-            <a href="/">bass loop</a>
+            <a class="main-name" href="/">bass loop</a>
           </div>
         </span>
       </div>
@@ -27,7 +26,17 @@
 
       <ul class="thunks">
       {{range .Runs}}
-        <li>{{.Avatar}}<a class="name" href="/thunks/{{.Thunk.Digest}}">{{.Thunk.Digest}}</a> run {{template "run-summary.tmpl" .}}</li>
+        <li class="thunk">
+          <span class="logo-and-text">
+            <a href="/thunks/{{.Thunk.Digest}}">{{.Avatar}}</a>
+            <div class="heading-and-name">
+              <ul>
+                <li>{{template "run-summary.tmpl" .}}</li>
+                <li><strong>thunk</strong> <a class="name" href="/thunks/{{.Thunk.Digest}}">{{.Thunk.Digest}}</a></li>
+              </ul>
+            </div>
+          </span>
+        </li>
       {{end}}
       </ul>
 

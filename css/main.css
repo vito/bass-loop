@@ -565,16 +565,20 @@ pre.chroma a .chroma {
   height: 70px;
   width: auto;
 }
-.header .logo-and-text a {
+.header .logo-and-text .heading-and-name {
   margin-left: 25px;
-  font-family: var(--monospace-font);
+}
+.header .logo-and-text .logo {
+  height: 70px;
+}
+.header .logo-and-text .main-name {
   font-size: 70px;
-  color: var(--base05);
   font-weight: bold;
   text-transform: lowercase;
   text-decoration: none;
+  color: var(--base05);
 }
-.header .logo-and-text a:hover {
+.header .logo-and-text .main-name:hover {
   text-decoration: underline;
 }
 .header nav {
@@ -1449,66 +1453,94 @@ body {
   justify-content: flex-start;
   flex-direction: row;
 }
-.header.thunk .logo-and-text {
+.thunk .logo-and-text {
+  display: flex;
+  flex-direction: row;
   justify-content: flex-start;
   align-items: center;
+  position: relative;
+  flex-grow: 1;
 }
-.header.thunk .logo-and-text svg {
-  height: 99px;
+.thunk .logo-and-text a.logo,
+.thunk .logo-and-text a.avatar {
+  display: flex;
 }
-.header.thunk .logo-and-text .heading-and-name {
+.thunk .logo-and-text a.avatar {
+  margin-left: auto;
+}
+.thunk .logo-and-text a.avatar svg {
+  height: 77px;
+  flex-shrink: 0;
+}
+.thunk .logo-and-text .heading-and-name {
   display: flex;
   flex-direction: column;
   margin-left: 25px;
 }
-.header.thunk .logo-and-text .heading-and-name h1 {
+.thunk .logo-and-text .heading-and-name h1 {
   font-family: 'Roboto', Helvetica, Arial, Verdana, sans-serif;
   margin: 0;
   padding: 0;
 }
-.header.thunk .logo-and-text .heading-and-name ul {
+.thunk .logo-and-text .heading-and-name ul {
   list-style-type: none;
   margin: 0;
   padding: 0;
   color: var(--base04);
 }
-.header.thunk .logo-and-text .heading-and-name ul a {
+.thunk .logo-and-text .heading-and-name ul a {
   margin-left: 0;
   line-height: 1;
   font-size: inherit;
-}
-.header.thunk .logo-and-text .heading-and-name .name {
-  font-family: 'Iosevka', monospace;
-  color: var(--base05);
 }
 .thunks,
 .thunk-runs {
   color: var(--base04);
 }
-.thunks .name,
-.thunk-runs .name {
+a.name {
   font-family: 'Iosevka', monospace;
   color: var(--base05);
   font-weight: bold;
+  word-break: break-all;
   text-decoration: none;
 }
-.thunks .name:hover,
-.thunk-runs .name:hover {
+a.name:hover {
   text-decoration: underline;
 }
-.thunks li svg {
-  width: 33px;
-  height: 33px;
-  vertical-align: middle;
-  margin-right: 5px;
-}
-.run-summary a {
-  text-decoration: none;
+a.username {
   color: var(--base04);
   font-weight: bold;
+  text-decoration: none;
 }
-.run-summary a:hover {
+a.username:hover {
   text-decoration: underline;
+}
+.thunks {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.thunks > li {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+}
+.thunks .thunk-info,
+.thunks .run-info {
+  display: block;
+}
+.thunks .logo-and-text .heading-and-name {
+  margin-left: 15px;
+}
+.thunks .logo-and-text svg {
+  width: 44px;
+  height: 44px;
+}
+.run-summary .succeeded {
+  color: var(--base0B);
+}
+.run-summary .failed {
+  color: var(--base09);
 }
 @media (min-width: 1024px) {
   .page {
@@ -1583,5 +1615,6 @@ body {
   color: var(--base03);
 }
 .highlight.wrap pre {
+  word-break: break-all;
   white-space: pre-wrap;
 }

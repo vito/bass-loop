@@ -5,13 +5,26 @@ body {
   flex-direction: row;
 }
 
-.header.thunk {
+.thunk {
   .logo-and-text {
+    display: flex;
+    flex-direction: row;
     justify-content: flex-start;
     align-items: center;
 
-    svg {
-      height: 99px;
+    position: relative;
+    flex-grow: 1;
+    a.logo, a.avatar {
+      display: flex;
+    }
+
+    a.avatar {
+      margin-left: auto;
+    }
+
+    a.avatar svg {
+      height: 77px;
+      flex-shrink: 0;
     }
 
     .heading-and-name {
@@ -38,43 +51,71 @@ body {
           font-size: inherit;
         }
       }
-
-      .name {
-        font-family: @monospace-font;
-        color: var(--base05);
-      }
     }
   }
 }
 
 .thunks, .thunk-runs {
   color: var(--base04);
-  .name {
-    font-family: @monospace-font;
-    color: var(--base05);
-    font-weight: bold;
-    text-decoration: none;
+}
 
-    &:hover {
-      text-decoration: underline;
+a.name {
+  font-family: @monospace-font;
+  color: var(--base05);
+  font-weight: bold;
+  word-break: break-all;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+a.username {
+  color: var(--base04);
+  font-weight: bold;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.thunks {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+
+  > li {
+    margin-bottom: 10px;
+
+    display: flex;
+    flex-direction: column;
+  }
+
+  .thunk-info, .run-info {
+    display: block;
+  }
+
+  .logo-and-text {
+    .heading-and-name {
+      margin-left: 15px;
+    }
+
+    svg {
+      width: 44px;
+      height: 44px;
     }
   }
 }
 
-.thunks li svg {
-  width: 33px;
-  height: 33px;
-  vertical-align: middle;
-  margin-right: 5px;
-}
+.run-summary {
+  .succeeded {
+    color: var(--base0B);
+  }
 
-.run-summary a {
-  text-decoration: none;
-  color: var(--base04);
-  font-weight: bold;
-
-  &:hover {
-    text-decoration: underline;
+  .failed {
+    color: var(--base09);
   }
 }
 
@@ -175,5 +216,6 @@ body {
 }
 
 .highlight.wrap pre {
+  word-break: break-all;
   white-space: pre-wrap;
 }

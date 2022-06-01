@@ -15,13 +15,14 @@
     <div class="page">
       <div class="header thunk">
         <span class="logo-and-text">
-          {{.Avatar}}
+          <a class="logo" href="/">{{template "logo.tmpl"}}</a>
           <div class="heading-and-name">
             <h1>thunk</h1>
             <ul>
               <li><strong>thunk</strong> <a class="name" href="/thunks/{{.Thunk.Digest}}">{{.Thunk.Digest}}</a></li>
             </ul>
           </div>
+          <a class="avatar" href="/thunks/{{.Thunk.Digest}}">{{.Avatar}}</a>
         </span>
       </div>
 
