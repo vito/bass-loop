@@ -15,5 +15,5 @@ go install github.com/xo/xo@latest
 xo schema --out ./pkg/models "sqlite3://${db}"
 
 xo query --out ./pkg/models "sqlite3://${db}" -M -B -T RunListing -2 <<EOF
-  SELECT id FROM runs ORDER BY start_time DESC
+  SELECT id FROM runs ORDER BY start_time DESC LIMIT 50
 EOF

@@ -14,7 +14,7 @@ type RunListing struct {
 // GetRunListings runs a custom query, returning results as RunListing.
 func GetRunListings(ctx context.Context, db DB) ([]*RunListing, error) {
 	// query
-	const sqlstr = `SELECT id FROM runs ORDER BY start_time DESC`
+	const sqlstr = `SELECT id FROM runs ORDER BY start_time DESC LIMIT 50`
 	// run
 	logf(sqlstr)
 	rows, err := db.QueryContext(ctx, sqlstr)
