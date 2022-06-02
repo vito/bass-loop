@@ -19,8 +19,8 @@
          :check-suite {:head-sha sha}}
         (start-checks clone-url sha github)
 
-        unknown
-        (log "ignoring action" :event event :action unknown))
+        _
+        (log "ignoring action" :event event :action payload:action))
 
       "check_run"
       (case payload
@@ -33,8 +33,8 @@
               thunk (selector (checks src))]
           (github:start-check thunk name sha))
 
-        unknown
-        (log "ignoring action" :event event :action unknown))
+        _
+        (log "ignoring action" :event event :action payload:action))
 
       "pull_request"
       (case payload
@@ -53,8 +53,8 @@
                                :repo {:clone-url clone-url}}}}
         (start-checks clone-url sha github)
 
-        unknown
-        (log "ignoring action" :event event :action unknown))
+        _
+        (log "ignoring action" :event event :action payload:action))
 
       _
       (log "ignoring event" :event event :payload (keys payload)))))
