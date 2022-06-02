@@ -1,8 +1,9 @@
 (defn check-hook [checks git]
   (defn start-checks [src sha github]
-    (map-pairs
-      (fn [name thunk] (github:start-check thunk (str name) sha))
-      (scope->list (checks src))))
+    (let [src (git:checkout clone-url sha)]
+      (map-pairs
+        (fn [name thunk] (github:start-check thunk (str name) sha))
+        (scope->list (checks src)))))
 
   (fn [payload event github]
     (case event
@@ -11,12 +12,12 @@
         {:action "requested"
          :repository {:clone-url clone-url}
          :check-suite {:head-sha sha}}
-        (start-checks (git:checkout clone-url sha) sha github)
+        (start-checks clone-url sha github)
 
         {:action "rerequested"
          :repository {:clone-url clone-url}
          :check-suite {:head-sha sha}}
-        (start-checks (git:checkout clone-url sha) sha github)
+        (start-checks clone-url sha github)
 
         unknown
         (log "ignoring action" :event event :action unknown))
@@ -28,8 +29,29 @@
          :check-run {:name name
                      :head-sha sha}}
         (let [selector (string->symbol name)
-              thunk (selector (checks (git:checkout clone-url sha)))]
+              src (git:checkout clone-url sha)
+              thunk (selector (checks src))]
           (github:start-check thunk name sha))
+
+        unknown
+        (log "ignoring action" :event event :action unknown))
+
+      "pull_request"
+      (case payload
+        {:action "opened"
+         :pull-request {:head {:sha sha
+                               :repo {:clone-url clone-url}}}}
+        (start-checks clone-url sha github)
+
+        {:action "reopened"
+         :pull-request {:head {:sha sha
+                               :repo {:clone-url clone-url}}}}
+        (start-checks clone-url sha github)
+
+        {:action "synchronize"
+         :pull-request {:head {:sha sha
+                               :repo {:clone-url clone-url}}}}
+        (start-checks clone-url sha github)
 
         unknown
         (log "ignoring action" :event event :action unknown))
