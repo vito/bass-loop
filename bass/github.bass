@@ -1,5 +1,5 @@
 (defn check-hook [checks git]
-  (defn start-checks [src sha github]
+  (defn start-checks [clone-url sha github]
     (let [src (git:checkout clone-url sha)]
       (map-pairs
         (fn [name thunk] (github:start-check thunk (str name) sha))
