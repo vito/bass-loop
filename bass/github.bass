@@ -10,13 +10,13 @@
       "check_suite"
       (case payload
         {:action "requested"
-         :repository {:clone-url clone-url}
-         :check-suite {:head-sha sha}}
+         :repository {:clone_url clone-url}
+         :check_suite {:head_sha sha}}
         (start-checks clone-url sha github)
 
         {:action "rerequested"
-         :repository {:clone-url clone-url}
-         :check-suite {:head-sha sha}}
+         :repository {:clone_url clone-url}
+         :check_suite {:head_sha sha}}
         (start-checks clone-url sha github)
 
         _
@@ -25,9 +25,9 @@
       "check_run"
       (case payload
         {:action "rerequested"
-         :repository {:clone-url clone-url}
-         :check-run {:name name
-                     :head-sha sha}}
+         :repository {:clone_url clone-url}
+         :check_run {:name name
+                     :head_sha sha}}
         (let [selector (string->symbol name)
               src (git:checkout clone-url sha)
               thunk (selector (checks src))]
@@ -39,18 +39,18 @@
       "pull_request"
       (case payload
         {:action "opened"
-         :pull-request {:head {:sha sha
-                               :repo {:clone-url clone-url}}}}
+         :pull_request {:head {:sha sha
+                               :repo {:clone_url clone-url}}}}
         (start-checks clone-url sha github)
 
         {:action "reopened"
-         :pull-request {:head {:sha sha
-                               :repo {:clone-url clone-url}}}}
+         :pull_request {:head {:sha sha
+                               :repo {:clone_url clone-url}}}}
         (start-checks clone-url sha github)
 
         {:action "synchronize"
-         :pull-request {:head {:sha sha
-                               :repo {:clone-url clone-url}}}}
+         :pull_request {:head {:sha sha
+                               :repo {:clone_url clone-url}}}}
         (start-checks clone-url sha github)
 
         _
