@@ -12,9 +12,8 @@ type Runtime struct {
 	Name      string `json:"name"`       // name
 	Os        string `json:"os"`         // os
 	Arch      string `json:"arch"`       // arch
-	Driver    string `json:"driver"`     // driver
-	Config    []byte `json:"config"`     // config
 	ExpiresAt Time   `json:"expires_at"` // expires_at
+	Priority  int    `json:"priority"`   // priority
 	// xo fields
 	_exists, _deleted bool
 }
@@ -40,13 +39,13 @@ func (r *Runtime) Insert(ctx context.Context, db DB) error {
 	}
 	// insert (manual)
 	const sqlstr = `INSERT INTO runtimes (` +
-		`user_id, name, os, arch, driver, config, expires_at` +
+		`user_id, name, os, arch, expires_at, priority` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7` +
+		`$1, $2, $3, $4, $5, $6` +
 		`)`
 	// run
-	logf(sqlstr, r.UserID, r.Name, r.Os, r.Arch, r.Driver, r.Config, r.ExpiresAt)
-	if _, err := db.ExecContext(ctx, sqlstr, r.UserID, r.Name, r.Os, r.Arch, r.Driver, r.Config, r.ExpiresAt); err != nil {
+	logf(sqlstr, r.UserID, r.Name, r.Os, r.Arch, r.ExpiresAt, r.Priority)
+	if _, err := db.ExecContext(ctx, sqlstr, r.UserID, r.Name, r.Os, r.Arch, r.ExpiresAt, r.Priority); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -64,11 +63,11 @@ func (r *Runtime) Update(ctx context.Context, db DB) error {
 	}
 	// update with primary key
 	const sqlstr = `UPDATE runtimes SET ` +
-		`os = $1, arch = $2, driver = $3, config = $4, expires_at = $5 ` +
-		`WHERE user_id = $6 AND name = $7`
+		`os = $1, arch = $2, expires_at = $3, priority = $4 ` +
+		`WHERE user_id = $5 AND name = $6`
 	// run
-	logf(sqlstr, r.Os, r.Arch, r.Driver, r.Config, r.ExpiresAt, r.UserID, r.Name)
-	if _, err := db.ExecContext(ctx, sqlstr, r.Os, r.Arch, r.Driver, r.Config, r.ExpiresAt, r.UserID, r.Name); err != nil {
+	logf(sqlstr, r.Os, r.Arch, r.ExpiresAt, r.Priority, r.UserID, r.Name)
+	if _, err := db.ExecContext(ctx, sqlstr, r.Os, r.Arch, r.ExpiresAt, r.Priority, r.UserID, r.Name); err != nil {
 		return logerror(err)
 	}
 	return nil
@@ -90,16 +89,16 @@ func (r *Runtime) Upsert(ctx context.Context, db DB) error {
 	}
 	// upsert
 	const sqlstr = `INSERT INTO runtimes (` +
-		`user_id, name, os, arch, driver, config, expires_at` +
+		`user_id, name, os, arch, expires_at, priority` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7` +
+		`$1, $2, $3, $4, $5, $6` +
 		`)` +
 		` ON CONFLICT (user_id, name) DO ` +
 		`UPDATE SET ` +
-		`os = EXCLUDED.os, arch = EXCLUDED.arch, driver = EXCLUDED.driver, config = EXCLUDED.config, expires_at = EXCLUDED.expires_at `
+		`os = EXCLUDED.os, arch = EXCLUDED.arch, expires_at = EXCLUDED.expires_at, priority = EXCLUDED.priority `
 	// run
-	logf(sqlstr, r.UserID, r.Name, r.Os, r.Arch, r.Driver, r.Config, r.ExpiresAt)
-	if _, err := db.ExecContext(ctx, sqlstr, r.UserID, r.Name, r.Os, r.Arch, r.Driver, r.Config, r.ExpiresAt); err != nil {
+	logf(sqlstr, r.UserID, r.Name, r.Os, r.Arch, r.ExpiresAt, r.Priority)
+	if _, err := db.ExecContext(ctx, sqlstr, r.UserID, r.Name, r.Os, r.Arch, r.ExpiresAt, r.Priority); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -134,7 +133,7 @@ func (r *Runtime) Delete(ctx context.Context, db DB) error {
 func RuntimesByUserID(ctx context.Context, db DB, userID string) ([]*Runtime, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`user_id, name, os, arch, driver, config, expires_at ` +
+		`user_id, name, os, arch, expires_at, priority ` +
 		`FROM runtimes ` +
 		`WHERE user_id = $1`
 	// run
@@ -151,7 +150,7 @@ func RuntimesByUserID(ctx context.Context, db DB, userID string) ([]*Runtime, er
 			_exists: true,
 		}
 		// scan
-		if err := rows.Scan(&r.UserID, &r.Name, &r.Os, &r.Arch, &r.Driver, &r.Config, &r.ExpiresAt); err != nil {
+		if err := rows.Scan(&r.UserID, &r.Name, &r.Os, &r.Arch, &r.ExpiresAt, &r.Priority); err != nil {
 			return nil, logerror(err)
 		}
 		res = append(res, &r)
@@ -168,7 +167,7 @@ func RuntimesByUserID(ctx context.Context, db DB, userID string) ([]*Runtime, er
 func RuntimeByUserIDName(ctx context.Context, db DB, userID, name string) (*Runtime, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`user_id, name, os, arch, driver, config, expires_at ` +
+		`user_id, name, os, arch, expires_at, priority ` +
 		`FROM runtimes ` +
 		`WHERE user_id = $1 AND name = $2`
 	// run
@@ -176,7 +175,7 @@ func RuntimeByUserIDName(ctx context.Context, db DB, userID, name string) (*Runt
 	r := Runtime{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, userID, name).Scan(&r.UserID, &r.Name, &r.Os, &r.Arch, &r.Driver, &r.Config, &r.ExpiresAt); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, userID, name).Scan(&r.UserID, &r.Name, &r.Os, &r.Arch, &r.ExpiresAt, &r.Priority); err != nil {
 		return nil, logerror(err)
 	}
 	return &r, nil

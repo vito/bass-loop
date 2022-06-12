@@ -159,6 +159,26 @@ func ServicesByUserIDRuntimeName(ctx context.Context, db DB, userID, runtimeName
 	return res, nil
 }
 
+// ServiceByUserIDRuntimeNameService retrieves a row from 'services' as a Service.
+//
+// Generated from index 'service_user_runtime_service_idx'.
+func ServiceByUserIDRuntimeNameService(ctx context.Context, db DB, userID, runtimeName, service string) (*Service, error) {
+	// query
+	const sqlstr = `SELECT ` +
+		`user_id, runtime_name, service, addr ` +
+		`FROM services ` +
+		`WHERE user_id = $1 AND runtime_name = $2 AND service = $3`
+	// run
+	logf(sqlstr, userID, runtimeName, service)
+	s := Service{
+		_exists: true,
+	}
+	if err := db.QueryRowContext(ctx, sqlstr, userID, runtimeName, service).Scan(&s.UserID, &s.RuntimeName, &s.Service, &s.Addr); err != nil {
+		return nil, logerror(err)
+	}
+	return &s, nil
+}
+
 // ServiceByRuntimeNameService retrieves a row from 'services' as a Service.
 //
 // Generated from index 'sqlite_autoindex_services_1'.

@@ -3,7 +3,6 @@ package runnel
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -138,8 +137,8 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 func (server *Server) HandleForwardCommand(s ssh.Session, flags *flag.FlagSet, args []string) {
 	logger := bass.LoggerTo(s).With(zap.String("side", "server"))
 
-	var driver string
-	flags.StringVarP(&driver, "runtime", "r", "", "runtime driver")
+	var priority int
+	flags.IntVarP(&priority, "priority", "p", 0, "priority")
 
 	var os, arch string
 	flags.StringVar(&os, "os", "linux", "runtime platform OS (ie. GOOS)")
@@ -151,24 +150,9 @@ func (server *Server) HandleForwardCommand(s ssh.Session, flags *flag.FlagSet, a
 		return
 	}
 
-	if driver == "" {
-		logger.Error("missing --runtime/-r flag")
-		s.Exit(2)
-		return
-	}
-
 	userIDVal := s.Context().Value(userIdKey{})
 	if userIDVal == nil {
 		logger.Error("user id not found in context")
-		s.Exit(1)
-		return
-	}
-
-	logger.Debug("reading runtime config")
-
-	var cfg json.RawMessage
-	if err := json.NewDecoder(s).Decode(&cfg); err != nil {
-		logger.Error("failed to decode config", zap.Error(err))
 		s.Exit(1)
 		return
 	}
@@ -178,10 +162,9 @@ func (server *Server) HandleForwardCommand(s ssh.Session, flags *flag.FlagSet, a
 	runtime := models.Runtime{
 		UserID:    userID,
 		Name:      s.Context().SessionID(),
+		Priority:  priority,
 		Os:        os,
 		Arch:      arch,
-		Driver:    driver,
-		Config:    []byte(cfg),
 		ExpiresAt: models.NewTime(time.Now().Add(time.Hour).UTC()),
 	}
 

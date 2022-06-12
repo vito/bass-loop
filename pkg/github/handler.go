@@ -21,12 +21,15 @@ import (
 	"github.com/vito/bass-loop/pkg/models"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
+	"github.com/vito/bass/pkg/proto"
 	"github.com/vito/bass/pkg/runtimes"
 	"github.com/vito/bass/pkg/zapctx"
 	"github.com/vito/progrock"
 	"go.uber.org/zap"
 	"gocloud.dev/blob"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type WebhookHandler struct {
@@ -111,44 +114,6 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 		return fmt.Errorf("payload->scope: %w", err)
 	}
 
-	var runtimeConfigs []bass.RuntimeConfig
-	rts, err := models.RuntimesByUserID(ctx, h.DB, sender.GetNodeID())
-	if err != nil {
-		return fmt.Errorf("get runtimes: %w", err)
-	}
-
-	for _, rt := range rts {
-		var cfg *bass.Scope
-		if err := bass.UnmarshalJSON(rt.Config, &cfg); err != nil {
-			return fmt.Errorf("unmarshal runtime config: %w", err)
-		}
-
-		svcs, err := models.ServicesByUserIDRuntimeName(ctx, h.DB, sender.GetNodeID(), rt.Name)
-		if err != nil {
-			return fmt.Errorf("get services: %w", err)
-		}
-
-		addrs := bass.RuntimeAddrs{}
-		for _, svc := range svcs {
-			u, err := url.Parse(svc.Addr)
-			if err != nil {
-				return fmt.Errorf("parse service url %q: %w", svc.Addr, err)
-			}
-
-			addrs[svc.Service] = u
-		}
-
-		runtimeConfigs = append(runtimeConfigs, bass.RuntimeConfig{
-			Platform: bass.Platform{
-				OS:   rt.Os,
-				Arch: rt.Arch,
-			},
-			Runtime: rt.Driver,
-			Addrs:   addrs,
-			Config:  cfg,
-		})
-	}
-
 	ghClient := github.NewClient(&http.Client{
 		Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),
 	})
@@ -162,36 +127,76 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 		Repo:        repo,
 	}
 
+	var checkSuite github.CheckSuiteEvent
+	err = json.Unmarshal(payload, &checkSuite)
+	if err != nil {
+		return err
+	}
+
 	repoUser := repo.GetOwner().GetLogin()
 
+	// TODO: ensure errors get logged
 	h.Dispatches.Go(func() error {
 		ctx, runs := bass.TrackRuns(ctx)
 
-		pool, err := runtimes.NewPool(&bass.Config{
-			Runtimes: runtimeConfigs,
-		})
+		rts, err := models.RuntimesByUserID(ctx, h.DB, sender.GetNodeID())
 		if err != nil {
-			return fmt.Errorf("pool: %w", err)
+			return fmt.Errorf("get runtimes: %w", err)
 		}
 
+		pool := &runtimes.Pool{}
 		defer pool.Close()
+
+		for _, rt := range rts {
+			svc, err := models.ServiceByUserIDRuntimeNameService(ctx, h.DB, sender.GetNodeID(), rt.Name, runtimes.RuntimeServiceName)
+			if err != nil {
+				logger.Error("failed to get service", zap.Error(err))
+				return fmt.Errorf("get runtime service: %w", err)
+			}
+
+			conn, err := grpc.Dial(svc.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				cli.WriteError(ctx, err)
+				logger.Error("grpc dial failed", zap.Error(err))
+				return err
+			}
+
+			assoc := runtimes.Assoc{
+				Platform: bass.Platform{
+					OS:   rt.Os,
+					Arch: rt.Arch,
+				},
+				Runtime: &runtimes.Client{
+					Conn:          conn,
+					RuntimeClient: proto.NewRuntimeClient(conn),
+				},
+			}
+
+			pool.Runtimes = append(pool.Runtimes, assoc)
+		}
 
 		ctx = bass.WithRuntimePool(ctx, pool)
 
-		branch, _, err := ghClient.Repositories.GetBranch(ctx, repoUser, repo.GetName(), repo.GetDefaultBranch(), true)
+		var branch *github.Branch
+		if checkSuite.CheckSuite != nil {
+			branch, _, err = ghClient.Repositories.GetBranch(ctx, repoUser, repo.GetName(), checkSuite.CheckSuite.GetHeadBranch(), true)
+		} else {
+			branch, _, err = ghClient.Repositories.GetBranch(ctx, repoUser, repo.GetName(), repo.GetDefaultBranch(), true)
+		}
 		if err != nil {
+			cli.WriteError(ctx, err)
 			return fmt.Errorf("get branch: %w", err)
 		}
 
-		projectFp := NewGHPath(ctx, ghClient, repo, branch, "project")
+		projectFp := NewGHPath(ctx, ghClient, repo, branch, "project.bass")
 
 		thunk := bass.Thunk{
 			Cmd: bass.ThunkCmd{
-				FS: &projectFp,
+				FS: projectFp,
 			},
 		}
 
-		module, err := runtimes.NewBass(pool).Load(ctx, thunk)
+		module, err := bass.NewBass().Load(ctx, thunk)
 		if err != nil {
 			logger.Error("delivery failed", zap.Error(err))
 			cli.WriteError(ctx, err)
@@ -200,8 +205,11 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 
 		var comb bass.Combiner
 		if err := module.GetDecode("github-hook", &comb); err != nil {
+			cli.WriteError(ctx, err)
 			return fmt.Errorf("get github-hook: %w", err)
 		}
+
+		logger.Info("calling github-hook")
 
 		call := comb.Call(
 			ctx,
@@ -215,10 +223,15 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 		)
 
 		if _, err := bass.Trampoline(ctx, call); err != nil {
+			cli.WriteError(ctx, err)
 			return fmt.Errorf("hook: %w", err)
 		}
 
+		logger.Info("delivery complete")
+
 		runs.Wait()
+
+		logger.Info("delivery waited")
 
 		return nil
 	})
@@ -421,6 +434,7 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 		return nil
 	}
 
+	// TODO: this swallows internal errors and makes them hard to debug
 	return thunk.Start(thunkCtx, bass.Func("handler", "[ok?]", func(ctx context.Context, ok bool) error {
 		err := complete(ctx, ok)
 		if err != nil {
