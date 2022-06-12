@@ -99,9 +99,12 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventName, deliveryID strin
 	)
 
 	if repoEvent.Repo != nil && repoEvent.Installation != nil {
+		subCtx := bass.ForkTrace(h.RootCtx)
+		subCtx = zapctx.ToContext(subCtx, logger)
+
 		h.Dispatches.Go(func() error {
 			err := h.dispatch(
-				zapctx.ToContext(bass.ForkTrace(h.RootCtx), logger),
+				subCtx,
 				repoEvent.Installation.GetID(),
 				repoEvent.Sender,
 				repoEvent.Repo,
@@ -111,7 +114,7 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventName, deliveryID strin
 			)
 			if err != nil {
 				logger.Warn("dispatch errored", zap.Error(err))
-				cli.WriteError(ctx, err)
+				cli.WriteError(subCtx, err)
 			}
 
 			return nil
