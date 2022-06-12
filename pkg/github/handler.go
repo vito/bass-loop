@@ -205,8 +205,10 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 	call := comb.Call(
 		ctx,
 		bass.NewList(
-			payloadScope,
-			bass.String(eventName),
+			bass.Bindings{
+				"event":   bass.String(eventName),
+				"payload": payloadScope,
+			}.Scope(),
 			(&BassGitHubClient{
 				ExternalURL: h.ExternalURL,
 				DB:          h.DB,

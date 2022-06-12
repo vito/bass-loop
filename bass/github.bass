@@ -1,23 +1,17 @@
-(defn check-hook [checks git]
-  (defn start-checks [clone-url sha github]
-    (let [src (git:checkout clone-url sha)]
-      (map-pairs
-        (fn [name thunk] (github:start-check thunk (str name) sha))
-        (scope->list (checks src)))))
-
-  (fn [payload event github]
+(provide [check-hook]
+  (defn check-hook [{:event event :payload payload} client git checks]
     (case event
       "check_suite"
       (case payload
         {:action "requested"
          :repository {:clone_url clone-url}
          :check_suite {:head_sha sha}}
-        (start-checks clone-url sha github)
+        (start-checks clone-url sha client checks)
 
         {:action "rerequested"
          :repository {:clone_url clone-url}
          :check_suite {:head_sha sha}}
-        (start-checks clone-url sha github)
+        (start-checks clone-url sha client checks)
 
         _
         (log "ignoring action" :event event :action payload:action))
@@ -31,7 +25,7 @@
         (let [selector (string->symbol name)
               src (git:checkout clone-url sha)
               thunk (selector (checks src))]
-          (github:start-check thunk name sha))
+          (client:start-check thunk name sha))
 
         _
         (log "ignoring action" :event event :action payload:action))
@@ -41,20 +35,27 @@
         {:action "opened"
          :pull_request {:head {:sha sha
                                :repo {:clone_url clone-url}}}}
-        (start-checks clone-url sha github)
+        (start-checks clone-url sha client checks)
 
         {:action "reopened"
          :pull_request {:head {:sha sha
                                :repo {:clone_url clone-url}}}}
-        (start-checks clone-url sha github)
+        (start-checks clone-url sha client checks)
 
         {:action "synchronize"
          :pull_request {:head {:sha sha
                                :repo {:clone_url clone-url}}}}
-        (start-checks clone-url sha github)
+        (start-checks clone-url sha client checks)
 
         _
         (log "ignoring action" :event event :action payload:action))
 
       _
-      (log "ignoring event" :event event :payload (keys payload)))))
+      (log "ignoring event" :event event :payload (keys payload))))
+
+  (defn start-checks [checks clone-url sha client]
+    (let [src (git:checkout clone-url sha)]
+      (map-pairs
+        (fn [name thunk] (client:start-check thunk (str name) sha))
+        (scope->list (checks src)))))
+  )
