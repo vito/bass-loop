@@ -36,7 +36,7 @@ type WebhookHandler struct {
 	ExternalURL   *url.URL
 	DB            *sql.DB
 	Blobs         *blob.Bucket
-	RunCtx        context.Context
+	RootCtx       context.Context
 	WebhookSecret string
 	AppsTransport *ghinstallation.AppsTransport
 	Dispatches    *errgroup.Group
@@ -101,7 +101,7 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventName, deliveryID strin
 	if repoEvent.Repo != nil && repoEvent.Installation != nil {
 		h.Dispatches.Go(func() error {
 			err := h.dispatch(
-				zapctx.ToContext(bass.ForkTrace(h.RunCtx), logger),
+				zapctx.ToContext(bass.ForkTrace(h.RootCtx), logger),
 				repoEvent.Installation.GetID(),
 				repoEvent.Sender,
 				repoEvent.Repo,
@@ -123,28 +123,29 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventName, deliveryID strin
 	return nil
 }
 
-func (h *WebhookHandler) withUserPool(ctx context.Context, user *github.User) (context.Context, error) {
+func (h *WebhookHandler) withUserPool(ctx context.Context, user *github.User) (context.Context, *runtimes.Pool, error) {
 	logger := zapctx.FromContext(ctx)
 
 	rts, err := models.RuntimesByUserID(ctx, h.DB, user.GetNodeID())
 	if err != nil {
-		return nil, fmt.Errorf("get runtimes: %w", err)
+		return nil, nil, fmt.Errorf("get runtimes: %w", err)
 	}
 
 	pool := &runtimes.Pool{}
-	defer pool.Close()
 
 	for _, rt := range rts {
 		svc, err := models.ServiceByUserIDRuntimeNameService(ctx, h.DB, user.GetNodeID(), rt.Name, runtimes.RuntimeServiceName)
 		if err != nil {
 			logger.Error("failed to get service", zap.Error(err))
-			return nil, fmt.Errorf("get runtime service: %w", err)
+			pool.Close()
+			return nil, nil, fmt.Errorf("get runtime service: %w", err)
 		}
 
 		conn, err := grpc.Dial(svc.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			logger.Error("grpc dial failed", zap.Error(err))
-			return nil, err
+			pool.Close()
+			return nil, nil, err
 		}
 
 		assoc := runtimes.Assoc{
@@ -161,7 +162,7 @@ func (h *WebhookHandler) withUserPool(ctx context.Context, user *github.User) (c
 		pool.Runtimes = append(pool.Runtimes, assoc)
 	}
 
-	return bass.WithRuntimePool(ctx, pool), nil
+	return bass.WithRuntimePool(ctx, pool), pool, nil
 
 }
 
@@ -172,10 +173,11 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 	ctx, runs := bass.TrackRuns(ctx)
 
 	// load the user's forwarded runtime pool
-	ctx, err := h.withUserPool(ctx, sender)
+	ctx, pool, err := h.withUserPool(ctx, sender)
 	if err != nil {
 		return fmt.Errorf("user %s (%s) pool: %w", sender.GetLogin(), sender.GetNodeID(), err)
 	}
+	defer pool.Close()
 
 	ghClient := github.NewClient(&http.Client{
 		Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),

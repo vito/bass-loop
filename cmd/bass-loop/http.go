@@ -80,7 +80,7 @@ func httpServe(ctx context.Context, db *sql.DB, blobs *blob.Bucket) error {
 			ExternalURL:   externalURL,
 			DB:            db,
 			Blobs:         blobs,
-			RunCtx:        ctx,
+			RootCtx:       ctx,
 			AppsTransport: appsTransport,
 			WebhookSecret: config.GitHubApp.WebhookSecret,
 			Dispatches:    dispatches,
