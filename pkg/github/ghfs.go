@@ -46,18 +46,17 @@ func (ghfs *GHFS) Open(name string) (fs.File, error) {
 	logger := zapctx.FromContext(ghfs.Ctx).With(
 		zap.String("repo", ghfs.Repo.GetFullName()),
 		zap.String("path", name),
+		zap.String("sha", ghfs.Branch.GetCommit().GetSHA()),
 	)
-
-	logger.Info("opening")
 
 	ghfs.cacheL.Lock()
 	defer ghfs.cacheL.Unlock()
 
 	file, cached := ghfs.cache[name]
 	if cached {
-		logger.Info("cache hit")
+		logger.Debug("cache hit")
 	} else {
-		logger.Info("cache miss")
+		logger.Info("fetching content")
 
 		var err error
 		file, _, _, err = ghfs.Client.Repositories.GetContents(

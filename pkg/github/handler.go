@@ -45,10 +45,10 @@ type WebhookHandler struct {
 func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	eventType := r.Header.Get("X-GitHub-Event")
+	eventName := r.Header.Get("X-GitHub-Event")
 	deliveryID := r.Header.Get("X-GitHub-Delivery")
 
-	if eventType == "" {
+	if eventName == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintln(w, "missing event type")
 		return
@@ -61,7 +61,7 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Handle(ctx, eventType, deliveryID, payloadBytes)
+	err = h.Handle(ctx, eventName, deliveryID, payloadBytes)
 	if err != nil {
 		cli.WriteError(ctx, err)
 
@@ -77,36 +77,10 @@ type RepoEvent struct {
 	Installation *github.Installation `json:"installation"`
 }
 
-func (h *WebhookHandler) Handle(ctx context.Context, eventType, deliveryID string, payload []byte) error {
-	logger := zapctx.FromContext(ctx).With(zap.String("event", eventType), zap.String("delivery", deliveryID))
+func (h *WebhookHandler) Handle(ctx context.Context, eventName, deliveryID string, payload []byte) error {
+	logger := zapctx.FromContext(ctx).With(zap.String("event", eventName), zap.String("delivery", deliveryID))
 
 	logger.Info("handling")
-
-	var event RepoEvent
-	err := json.Unmarshal(payload, &event)
-	if err != nil {
-		return err
-	}
-
-	if event.Repo != nil && event.Installation != nil {
-		return h.dispatch(
-			zapctx.ToContext(bass.ForkTrace(h.RunCtx), logger),
-			event.Installation.GetID(),
-			event.Sender,
-			event.Repo,
-			eventType,
-			deliveryID,
-			payload,
-		)
-	} else {
-		logger.Warn("ignoring unknown event")
-	}
-
-	return nil
-}
-
-func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *github.User, repo *github.Repository, eventType, deliveryID string, payload []byte) error {
-	logger := zapctx.FromContext(ctx)
 
 	var payloadScope *bass.Scope
 	err := json.Unmarshal(payload, &payloadScope)
@@ -114,129 +88,152 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 		return fmt.Errorf("payload->scope: %w", err)
 	}
 
-	ghClient := github.NewClient(&http.Client{
-		Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),
-	})
-
-	bassGhClient := &BassGitHubClient{
-		ExternalURL: h.ExternalURL,
-		DB:          h.DB,
-		GH:          ghClient,
-		Blobs:       h.Blobs,
-		Sender:      sender,
-		Repo:        repo,
-	}
-
-	var checkSuite github.CheckSuiteEvent
-	err = json.Unmarshal(payload, &checkSuite)
+	var repoEvent RepoEvent
+	err = json.Unmarshal(payload, &repoEvent)
 	if err != nil {
 		return err
 	}
 
-	repoUser := repo.GetOwner().GetLogin()
+	logger = logger.With(
+		zap.String("sender", repoEvent.Sender.GetLogin()),
+	)
 
-	// TODO: ensure errors get logged
-	h.Dispatches.Go(func() error {
-		ctx, runs := bass.TrackRuns(ctx)
-
-		rts, err := models.RuntimesByUserID(ctx, h.DB, sender.GetNodeID())
-		if err != nil {
-			return fmt.Errorf("get runtimes: %w", err)
-		}
-
-		pool := &runtimes.Pool{}
-		defer pool.Close()
-
-		for _, rt := range rts {
-			svc, err := models.ServiceByUserIDRuntimeNameService(ctx, h.DB, sender.GetNodeID(), rt.Name, runtimes.RuntimeServiceName)
+	if repoEvent.Repo != nil && repoEvent.Installation != nil {
+		h.Dispatches.Go(func() error {
+			err := h.dispatch(
+				zapctx.ToContext(bass.ForkTrace(h.RunCtx), logger),
+				repoEvent.Installation.GetID(),
+				repoEvent.Sender,
+				repoEvent.Repo,
+				eventName,
+				deliveryID,
+				payloadScope,
+			)
 			if err != nil {
-				logger.Error("failed to get service", zap.Error(err))
-				return fmt.Errorf("get runtime service: %w", err)
-			}
-
-			conn, err := grpc.Dial(svc.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-			if err != nil {
+				logger.Warn("dispatch errored", zap.Error(err))
 				cli.WriteError(ctx, err)
-				logger.Error("grpc dial failed", zap.Error(err))
-				return err
 			}
 
-			assoc := runtimes.Assoc{
-				Platform: bass.Platform{
-					OS:   rt.Os,
-					Arch: rt.Arch,
-				},
-				Runtime: &runtimes.Client{
-					Conn:          conn,
-					RuntimeClient: proto.NewRuntimeClient(conn),
-				},
-			}
+			return nil
+		})
+	} else {
+		logger.Warn("ignoring unknown event")
+	}
 
-			pool.Runtimes = append(pool.Runtimes, assoc)
-		}
+	return nil
+}
 
-		ctx = bass.WithRuntimePool(ctx, pool)
+func (h *WebhookHandler) withUserPool(ctx context.Context, user *github.User) (context.Context, error) {
+	logger := zapctx.FromContext(ctx)
 
-		var branch *github.Branch
-		if checkSuite.CheckSuite != nil {
-			branch, _, err = ghClient.Repositories.GetBranch(ctx, repoUser, repo.GetName(), checkSuite.CheckSuite.GetHeadBranch(), true)
-		} else {
-			branch, _, err = ghClient.Repositories.GetBranch(ctx, repoUser, repo.GetName(), repo.GetDefaultBranch(), true)
-		}
+	rts, err := models.RuntimesByUserID(ctx, h.DB, user.GetNodeID())
+	if err != nil {
+		return nil, fmt.Errorf("get runtimes: %w", err)
+	}
+
+	pool := &runtimes.Pool{}
+	defer pool.Close()
+
+	for _, rt := range rts {
+		svc, err := models.ServiceByUserIDRuntimeNameService(ctx, h.DB, user.GetNodeID(), rt.Name, runtimes.RuntimeServiceName)
 		if err != nil {
-			cli.WriteError(ctx, err)
-			return fmt.Errorf("get branch: %w", err)
+			logger.Error("failed to get service", zap.Error(err))
+			return nil, fmt.Errorf("get runtime service: %w", err)
 		}
 
-		projectFp := NewGHPath(ctx, ghClient, repo, branch, "project.bass")
+		conn, err := grpc.Dial(svc.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			logger.Error("grpc dial failed", zap.Error(err))
+			return nil, err
+		}
 
-		thunk := bass.Thunk{
-			Cmd: bass.ThunkCmd{
-				FS: projectFp,
+		assoc := runtimes.Assoc{
+			Platform: bass.Platform{
+				OS:   rt.Os,
+				Arch: rt.Arch,
+			},
+			Runtime: &runtimes.Client{
+				Conn:          conn,
+				RuntimeClient: proto.NewRuntimeClient(conn),
 			},
 		}
 
-		module, err := bass.NewBass().Load(ctx, thunk)
-		if err != nil {
-			logger.Error("delivery failed", zap.Error(err))
-			cli.WriteError(ctx, err)
-			return err
-		}
+		pool.Runtimes = append(pool.Runtimes, assoc)
+	}
 
-		var comb bass.Combiner
-		if err := module.GetDecode("github-hook", &comb); err != nil {
-			cli.WriteError(ctx, err)
-			return fmt.Errorf("get github-hook: %w", err)
-		}
+	return bass.WithRuntimePool(ctx, pool), nil
 
-		logger.Info("calling github-hook")
+}
 
-		call := comb.Call(
-			ctx,
-			bass.NewList(
-				payloadScope,
-				bass.String(eventType),
-				bassGhClient.Scope(),
-			),
-			module,
-			bass.Identity,
-		)
+func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *github.User, repo *github.Repository, eventName, deliveryID string, payloadScope *bass.Scope) error {
+	logger := zapctx.FromContext(ctx)
 
-		if _, err := bass.Trampoline(ctx, call); err != nil {
-			cli.WriteError(ctx, err)
-			return fmt.Errorf("hook: %w", err)
-		}
+	// track thunk runs separately so we can log them later
+	ctx, runs := bass.TrackRuns(ctx)
 
-		logger.Info("delivery complete")
+	// load the user's forwarded runtime pool
+	ctx, err := h.withUserPool(ctx, sender)
+	if err != nil {
+		return fmt.Errorf("user %s (%s) pool: %w", sender.GetLogin(), sender.GetNodeID(), err)
+	}
 
-		runs.Wait()
-
-		logger.Info("delivery waited")
-
-		return nil
+	ghClient := github.NewClient(&http.Client{
+		Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),
 	})
 
-	return nil
+	branch, _, err := ghClient.Repositories.GetBranch(ctx, repo.GetOwner().GetLogin(), repo.GetName(), repo.GetDefaultBranch(), true)
+	if err != nil {
+		return fmt.Errorf("get branch: %w", err)
+	}
+
+	module, err := bass.NewBass().Load(ctx, bass.Thunk{
+		Cmd: bass.ThunkCmd{
+			FS: NewGHPath(ctx, ghClient, repo, branch, "project.bass"),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("load project.bass: %w", err)
+	}
+
+	var comb bass.Combiner
+	if err := module.GetDecode("github-hook", &comb); err != nil {
+		return fmt.Errorf("get github-hook: %w", err)
+	}
+
+	logger.Info("calling github-hook")
+
+	call := comb.Call(
+		ctx,
+		bass.NewList(
+			payloadScope,
+			bass.String(eventName),
+			(&BassGitHubClient{
+				ExternalURL: h.ExternalURL,
+				DB:          h.DB,
+				GH:          ghClient,
+				Blobs:       h.Blobs,
+				Sender:      sender,
+				Repo:        repo,
+			}).Scope(),
+		),
+		module,
+		bass.Identity,
+	)
+
+	if _, err := bass.Trampoline(ctx, call); err != nil {
+		return fmt.Errorf("hook: %w", err)
+	}
+
+	logger.Info("github-hook called; waiting on runs")
+
+	err = runs.Wait()
+	if err != nil {
+		logger.Warn("runs failed", zap.Error(err))
+	} else {
+		logger.Info("runs succeeded")
+	}
+
+	return err
 }
 
 type BassGitHubClient struct {
@@ -256,7 +253,7 @@ func (client *BassGitHubClient) Scope() *bass.Scope {
 	return ghscope
 }
 
-func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk, name, sha string) (bass.Combiner, error) {
+func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk, checkName, sha string) (bass.Combiner, error) {
 	logger := zapctx.FromContext(ctx)
 
 	run, err := models.CreateThunkRun(ctx, client.DB, client.Sender, thunk)
@@ -288,7 +285,7 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 	}
 
 	checkRun, _, err := client.GH.Checks.CreateCheckRun(ctx, client.Repo.GetOwner().GetLogin(), client.Repo.GetName(), github.CreateCheckRunOptions{
-		Name:       name,
+		Name:       checkName,
 		HeadSHA:    sha,
 		Status:     github.String("in_progress"),
 		StartedAt:  &github.Timestamp{Time: time.Now()},
@@ -420,7 +417,7 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 			client.Repo.GetName(),
 			checkRun.GetID(),
 			github.UpdateCheckRunOptions{
-				Name:        name,
+				Name:        checkName,
 				Status:      github.String("completed"),
 				Conclusion:  github.String(conclusion),
 				CompletedAt: &github.Timestamp{Time: completedAt.Time()},
@@ -434,14 +431,20 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 		return nil
 	}
 
-	// TODO: this swallows internal errors and makes them hard to debug
 	return thunk.Start(thunkCtx, bass.Func("handler", "[ok?]", func(ctx context.Context, ok bool) error {
-		err := complete(ctx, ok)
-		if err != nil {
-			cli.WriteError(ctx, err)
+		if err := complete(ctx, ok); err != nil {
+			return fmt.Errorf("failed to complete: %w", err)
 		}
 
-		return err
+		if ok {
+			return nil
+		}
+
+		// bubble up an error so it gets logged
+		//
+		// might make sense to remove this someday, but I would rather start with
+		// too much logging
+		return fmt.Errorf("%s: check %s: %s failed", sha, checkName, thunk)
 	}))
 }
 
