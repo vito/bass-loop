@@ -1,6 +1,8 @@
 # bass loop
 
-A continuous [Bass](https://github.com/vito) service. Currently geared towards GitHub but other integrations should be possible.
+A continuous [Bass](https://github.com/vito/bass) service. Currently geared towards GitHub but other integrations should be possible.
+
+See [the Announcement](https://github.com/vito/bass-loop/discussions/1) for more details - a proper README will come shortly!
 
 ## the plan
 
@@ -10,5 +12,5 @@ A continuous [Bass](https://github.com/vito) service. Currently geared towards G
     * [ ] A thunk that contains secrets should default to private visibility.
 * [x] A SSH server so that users can bring their own workers (i.e. their local machine).
     * [ ] A method for passing secrets to thunks via the worker so sensitive values never even leave the machine.
-    * [ ] A method for PR authors to satisfy PR checks using their own workers, without the repo maintainer having to run them.
+    * [x] A method for PR authors to satisfy PR checks using their own workers, without the repo maintainer having to run them.
 * [ ] Scalable - everyone brings-their-own-worker, so only the Loop has to be scaled out.
