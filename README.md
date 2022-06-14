@@ -4,6 +4,11 @@ A continuous [Bass](https://github.com/vito/bass) service. Currently geared towa
 
 See [the Announcement](https://github.com/vito/bass-loop/discussions/1) for more details - a proper README will come shortly!
 
+## demo
+
+See [Bass Loop demo](https://github.com/vito/bass-loop-demo) for a repo to play
+around with.
+
 ## the plan
 
 * [x] A GitHub app for running Bass GitHub event handlers in-repo (kinda like GitHub actions).
