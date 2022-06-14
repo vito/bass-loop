@@ -12,10 +12,11 @@ around with.
 ## the plan
 
 * [x] A GitHub app for running Bass GitHub event handlers in-repo (kinda like GitHub actions).
-    * [ ] A shorthand for the common case of running checks.
+    * [x] A shorthand for the common case of running checks.
 * [x] A web UI for viewing thunk output (so a 'details URL' can be set on GitHub checks).
     * [ ] A thunk that contains secrets should default to private visibility.
 * [x] A SSH server so that users can bring their own workers (i.e. their local machine).
-    * [ ] A method for passing secrets to thunks via the worker so sensitive values never even leave the machine.
+    * [ ] A method for passing secrets to thunks via the runner so sensitive values never even leave the machine.
     * [x] A method for PR authors to satisfy PR checks using their own workers, without the repo maintainer having to run them.
 * [ ] Scalable - everyone brings-their-own-worker, so only the Loop has to be scaled out.
+* [ ] Make it a little more friendly. Right now the frontpage is pretty cryptic; it's purely driven by the 'navigating from GitHub' use case at the moment, but a dash of metadata could help tie things back in the other direction.
