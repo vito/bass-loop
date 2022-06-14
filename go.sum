@@ -1235,6 +1235,8 @@ github.com/prometheus/procfs v0.2.0/go.mod h1:lV6e/gmhEcM9IjHGsFOCxxuZ+z1YqCvr4O
 github.com/prometheus/procfs v0.6.0/go.mod h1:cz+aTbrPOrUb4q7XlbU9ygM+/jj0fzG6c1xBZuNvfVA=
 github.com/prometheus/procfs v0.7.3/go.mod h1:cz+aTbrPOrUb4q7XlbU9ygM+/jj0fzG6c1xBZuNvfVA=
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
+github.com/psanford/memfs v0.0.0-20210214183328-a001468d78ef h1:NKxTG6GVGbfMXc2mIk+KphcH6hagbVXhcFkbTgYleTI=
+github.com/psanford/memfs v0.0.0-20210214183328-a001468d78ef/go.mod h1:tcaRap0jS3eifrEEllL6ZMd9dg8IlDpi2S1oARrQ+NI=
 github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
 github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
 github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
@@ -1350,10 +1352,6 @@ github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc/go.mod h1:ZjcWmF
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df/go.mod h1:JP3t17pCcGlemwknint6hfoeCVQrEMVwxRLRjXpq+BU=
 github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
 github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
-github.com/vito/bass v0.5.1-0.20220531021324-71e4bbc58e6d h1:lq7w6hVk/G8YFfHBn2hate+vgxpB5MSH4U+f0MHmsW8=
-github.com/vito/bass v0.5.1-0.20220531021324-71e4bbc58e6d/go.mod h1:C6LQy/4hzFvPQd3SraV6T8hk93yuceHMxQXeTA7MN0k=
-github.com/vito/bass v0.5.1-0.20220531032827-fbcb3657af1c h1:QjGsKdQ9+bQlAaSyrtqP9lSWo8UvwiDpbS51xl/7XL0=
-github.com/vito/bass v0.5.1-0.20220531032827-fbcb3657af1c/go.mod h1:C6LQy/4hzFvPQd3SraV6T8hk93yuceHMxQXeTA7MN0k=
 github.com/vito/bass v0.6.1-0.20220614003746-b399cfa30ef0 h1:UeWbg1lKpr06+CXanyaZnWZWRsgojuqLYT7U1LqBubM=
 github.com/vito/bass v0.6.1-0.20220614003746-b399cfa30ef0/go.mod h1:kJts9BGRZfAPJsOEt7axkW6iVE+/h2avj3gEBNHt7zU=
 github.com/vito/invaders v0.0.2 h1:igc2c3fm89va6Qle9cEzKmFthYTeHse4Gnz6GWIlnpk=
