@@ -11,7 +11,8 @@
 ; a basic test: does it build?
 (defn build [src]
   (from (linux/golang)
-    ($ go build ./cmd/bass-loop)))
+    (cd src
+      ($ go build ./cmd/bass-loop))))
 
 ; called by bass-loop
 (defn github-hook [event client]
