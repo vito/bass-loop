@@ -17,6 +17,7 @@ import (
 	"github.com/vito/bass/pkg/proto"
 	"github.com/vito/bass/pkg/runtimes"
 	"github.com/vito/bass/pkg/zapctx"
+	"github.com/vito/progrock"
 	"go.uber.org/zap"
 	"gocloud.dev/blob"
 	"golang.org/x/sync/errgroup"
@@ -119,11 +120,6 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventName, deliveryID strin
 }
 
 func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *github.User, repo *github.Repository, eventName, deliveryID string, payloadScope *bass.Scope) error {
-	logger := zapctx.FromContext(ctx)
-
-	// track thunk runs separately so we can log them later
-	ctx, runs := bass.TrackRuns(ctx)
-
 	// load the user's forwarded runtime pool
 	ctx, pool, err := h.withUserPool(ctx, sender)
 	if err != nil {
@@ -140,11 +136,49 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 		return fmt.Errorf("get branch: %w", err)
 	}
 
-	module, err := bass.NewBass().Load(ctx, bass.Thunk{
+	hookThunk := bass.Thunk{
 		Cmd: bass.ThunkCmd{
 			FS: NewGHPath(ctx, ghClient, repo, branch, "project.bass"),
 		},
-	})
+	}
+
+	run, err := models.CreateThunkRun(ctx, h.DB, sender, hookThunk)
+	if err != nil {
+		return fmt.Errorf("create hook thunk run: %w", err)
+	}
+
+	progress := cli.NewProgress()
+	thunkCtx := progrock.RecorderToContext(ctx, progrock.NewRecorder(progress))
+
+	err = runHook(thunkCtx, hookThunk, bass.NewList(
+		bass.Bindings{
+			"event":   bass.String(eventName),
+			"payload": payloadScope,
+		}.Scope(),
+		(&BassGitHubClient{
+			ExternalURL: h.ExternalURL,
+			DB:          h.DB,
+			GH:          ghClient,
+			Blobs:       h.Blobs,
+			Sender:      sender,
+			Repo:        repo,
+		}).Scope(),
+	))
+
+	if completeErr := CompleteThunkRun(ctx, h.DB, h.Blobs, run, progress, err == nil); completeErr != nil {
+		return fmt.Errorf("failed to complete: %w", completeErr)
+	}
+
+	return err
+}
+
+func runHook(ctx context.Context, hookThunk bass.Thunk, args bass.List) error {
+	logger := zapctx.FromContext(ctx)
+
+	// track thunk runs separately so we can log them later
+	ctx, runs := bass.TrackRuns(ctx)
+
+	module, err := bass.NewBass().Load(ctx, hookThunk)
 	if err != nil {
 		return fmt.Errorf("load project.bass: %w", err)
 	}
@@ -156,25 +190,7 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 
 	logger.Info("calling github-hook")
 
-	call := comb.Call(
-		ctx,
-		bass.NewList(
-			bass.Bindings{
-				"event":   bass.String(eventName),
-				"payload": payloadScope,
-			}.Scope(),
-			(&BassGitHubClient{
-				ExternalURL: h.ExternalURL,
-				DB:          h.DB,
-				GH:          ghClient,
-				Blobs:       h.Blobs,
-				Sender:      sender,
-				Repo:        repo,
-			}).Scope(),
-		),
-		module,
-		bass.Identity,
-	)
+	call := comb.Call(ctx, args, module, bass.Identity)
 
 	if _, err := bass.Trampoline(ctx, call); err != nil {
 		return fmt.Errorf("hook: %w", err)
