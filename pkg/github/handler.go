@@ -11,9 +11,11 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/v43/github"
+	"github.com/opencontainers/go-digest"
 	"github.com/vito/bass-loop/pkg/models"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
+	"github.com/vito/bass/pkg/ioctx"
 	"github.com/vito/bass/pkg/proto"
 	"github.com/vito/bass/pkg/runtimes"
 	"github.com/vito/bass/pkg/zapctx"
@@ -107,7 +109,6 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventName, deliveryID strin
 			)
 			if err != nil {
 				logger.Warn("dispatch errored", zap.Error(err))
-				cli.WriteError(subCtx, err)
 			}
 
 			return nil
@@ -148,7 +149,14 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 	}
 
 	progress := cli.NewProgress()
-	thunkCtx := progrock.RecorderToContext(ctx, progrock.NewRecorder(progress))
+
+	recorder := progrock.NewRecorder(progress)
+	thunkCtx := progrock.RecorderToContext(ctx, recorder)
+
+	rec := recorder.Vertex(digest.Digest("delivery:"+deliveryID), fmt.Sprintf("[delivery] %s %s", eventName, deliveryID))
+	logger := bass.LoggerTo(rec.Stderr())
+	thunkCtx = zapctx.ToContext(thunkCtx, logger)
+	thunkCtx = ioctx.StderrToContext(thunkCtx, rec.Stderr())
 
 	err = runHook(thunkCtx, hookThunk, bass.NewList(
 		bass.Bindings{
@@ -164,6 +172,11 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 			Repo:        repo,
 		}).Scope(),
 	))
+	if err != nil {
+		cli.WriteError(thunkCtx, err)
+	}
+
+	rec.Done(err)
 
 	if completeErr := CompleteThunkRun(ctx, h.DB, h.Blobs, run, progress, err == nil); completeErr != nil {
 		return fmt.Errorf("failed to complete: %w", completeErr)
