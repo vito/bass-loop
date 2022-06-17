@@ -18,10 +18,6 @@ import (
 )
 
 type Server struct {
-	Addr           string `env:"SSH_ADDR"`
-	HostKeyPath    string `env:"SSH_HOST_KEY_PATH"`
-	HostKeyContent string `env:"SSH_HOST_KEY"`
-
 	DB    *sql.DB
 	Blobs *blob.Bucket
 }

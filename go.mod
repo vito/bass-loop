@@ -29,6 +29,22 @@ require (
 )
 
 require (
+	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1 // indirect
+	github.com/armon/go-radix v1.0.0 // indirect
+	github.com/bep/debounce v1.2.1 // indirect
+	github.com/cespare/xxhash v1.1.0 // indirect
+	github.com/evanw/esbuild v0.14.11 // indirect
+	github.com/fatih/structtag v1.2.0 // indirect
+	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
+	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac // indirect
+	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8 // indirect
+	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
+	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09 // indirect
+	golang.org/x/mod v0.5.1 // indirect
+)
+
+require (
 	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/compute v1.5.0 // indirect
 	cloud.google.com/go/iam v0.3.0 // indirect
@@ -99,6 +115,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
+	github.com/livebud/bud v0.1.7
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-ieproxy v0.0.3 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
@@ -147,3 +164,5 @@ require (
 
 // keep in sync with upstream buildkit
 replace github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220224222438-c78f6963a1c0+incompatible
+
+replace github.com/livebud/bud => ../bud
