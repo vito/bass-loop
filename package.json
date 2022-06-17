@@ -8,6 +8,8 @@
   "private": false,
   "dependencies": {
     "color-contrast-checker": "^2.1.0",
-    "less": "^4.1.1"
+    "less": "^4.1.1",
+    "livebud": "^0.1.7",
+    "svelte": "^3.48.0"
   }
 }
