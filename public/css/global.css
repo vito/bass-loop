@@ -1,0 +1,75 @@
+@import "normalize.css";
+@import "iosevka.css";
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+:root {
+  --content-font: 'Roboto', Helvetica, Arial, Verdana, sans-serif;
+  --monospace-font: 'Iosevka', monospace;
+  --font-size: 18px;
+
+  --page-margin: 70px;
+  --bottom-height: 70px;
+  --sidebar-width: 180px;
+  --button-radius: 5px;
+  --nav-spacing: 10px;
+
+  --background-color: var(--base00);
+  --foreground-color: var(--base05);
+  --border-color: var(--base02);
+  --link-color: var(--base0D);
+
+  --light-angle: 45deg;
+  --scrollbar-gradient: linear-gradient(var(--light-angle), var(--base03) 0, var(--base04) 100%);
+
+  --scrollbar-hover-gradient: linear-gradient(var(--light-angle), var(--base04) 0, var(--base05) 100%);
+  --highlight-gradient: linear-gradient(var(--light-angle), var(--base08) 0, var(--base0A) 100%);
+
+  --subtle-gradient:  linear-gradient(var(--light-angle), var(--background-color) 0, var(--base01) 100%);
+  --button-gradient:  linear-gradient(var(--light-angle), var(--background-color) 0, var(--base02) 100%);
+  --button-hover-gradient: linear-gradient(var(--light-angle), var(--background-color) 0, var(--base03) 100%);
+}
+
+::selection {
+  background: var(--base02);
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-gradient);
+  border-radius: var(--button-radius);
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover-gradient);
+}
+
+body {
+  background: var(--background-color);
+  color: var(--foreground-color);
+  font-family: var(--content-font);
+  font-size: var(--font-size);
+}
+
+a {
+  color: var(--link-color);
+}
+
+a:hover {
+  color: var(--foreground-color);
+}

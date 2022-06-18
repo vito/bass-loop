@@ -3,7 +3,7 @@
 
   adjusted to square and recentered via -1.5
 -->
-<svg class="logo" viewBox="0 -1.5 32.458259 32.458259" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" width="32.458259" height="32.458259">
+<svg viewBox="0 -1.5 32.458259 32.458259" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" width="32.458259" height="32.458259">
   <defs>
     <linearGradient id="lighting" x1="100%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" style="stop-color:var(--base0A);stop-opacity:1" />

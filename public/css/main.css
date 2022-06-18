@@ -19,17 +19,6 @@
   font-display: swap;
   src: url(https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAw.ttf) format('truetype');
 }
-body {
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: center;
-  font-family: 'Roboto', Helvetica, Arial, Verdana, sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 1.6;
-  margin: 0;
-  padding: 0;
-}
 pre,
 code {
   font-family: 'Iosevka', monospace;

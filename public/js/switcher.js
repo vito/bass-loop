@@ -1,9 +1,8 @@
-console.log("loaded");
-
 const styleKey = "theme";
 const linkId = "theme";
 const iconId = "favicon";
 
+const defaultId = "default-theme"
 const controlsId = "choosetheme"
 const switcherId = "styleswitcher";
 const resetId = "resetstyle";
@@ -55,6 +54,11 @@ function setActiveStyle(style) {
     switcher.value = style;
   }
 
+  var defaultStyle = document.getElementById(defaultId);
+  if (defaultStyle) {
+    defaultStyle.disabled = true;
+  }
+
   resetReset();
 }
 
@@ -73,15 +77,6 @@ function setActiveIcon(style) {
   link.id = iconId;
 
   document.head.appendChild(link);
-
-  var switcher = document.getElementById(switcherId);
-  if (switcher) {
-    // might not be loaded yet; this function is called twice, once super early
-    // to prevent flickering, and again once all the dom is loaded up
-    switcher.value = style;
-  }
-
-  resetReset();
 }
 
 function resetReset() {
@@ -115,76 +110,40 @@ function resetReset() {
   }
 }
 
-function setStyleOrDefault(def) {
-  setActiveStyle(loadStyle() || def);
+export function setStyleIfSet() {
+  var style = loadStyle();
+  if (!style) {
+    return;
+  }
+
+  setActiveStyle(style);
 }
 
 function resetStyle() {
   window.localStorage.removeItem(styleKey);
-  setActiveStyle(defaultStyle);
+
+  var linkStyle = document.getElementById(linkId)
+  if (linkStyle) {
+    linkStyle.remove();
+  }
+
+  var defaultStyle = document.getElementById(defaultId);
+  if (defaultStyle) {
+    defaultStyle.disabled = false;
+
+    var switcher = document.getElementById(switcherId);
+    if (switcher) {
+      switcher.value = switcher.dataset.default;
+    }
+  }
+
+  resetReset();
 }
 
-var curatedStyles = [
-  "chalk",
-  "classic-dark",
-  "darkmoss",
-  "decaf",
-  "default-dark",
-  "dracula",
-  "eighties",
-  "equilibrium-dark",
-  "equilibrium-gray-dark",
-  "espresso",
-  "framer",
-  "gruvbox-dark-medium",
-  "hardcore",
-  "horizon-dark",
-  "horizon-terminal-dark",
-  "ir-black",
-  "materia",
-  "material",
-  // "material-darker", // base03 too low contrast
-  "mocha",
-  "monokai",
-  // "nord", // base03 too low contrast
-  "ocean",
-  "oceanicnext",
-  "outrun-dark",
-  "rose-pine",
-  "rose-pine-moon",
-  "snazzy",
-  "tender",
-  "tokyo-night-dark",
-  "tokyo-night-terminal-dark",
-  "tomorrow-night",
-  "tomorrow-night-eighties",
-  "twilight",
-  "woodland",
-]
-
-
-var defaultStyle = curatedStyles[Math.floor(Math.random()*curatedStyles.length)]
-
-// preload all curated styles to prevent flickering
-curatedStyles.forEach(function(style) {
-  var link = link = document.createElement('link');
-  link.rel = "alternate stylesheet";
-  link.title = style;
-  link.type = "text/css";
-  link.href = "/css/base16/base16-"+style+".css";
-  link.media = "all";
-  document.head.appendChild(link);
-});
-
-setStyleOrDefault(defaultStyle);
+setStyleIfSet();
 
 window.onload = function() {
-  // call again to update switcher selection
-  setStyleOrDefault(defaultStyle);
-
-  document.querySelectorAll(".stderr pre").forEach(function(item) {
-    item.scrollTop = item.scrollHeight;
-  });
+  setStyleIfSet();
 }
 
 export function switchStyle(event) {
