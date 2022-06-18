@@ -1,3 +1,5 @@
+console.log("loaded");
+
 const styleKey = "theme";
 const linkId = "theme";
 const iconId = "favicon";
@@ -117,13 +119,7 @@ function setStyleOrDefault(def) {
   setActiveStyle(loadStyle() || def);
 }
 
-export function switchStyle(event) {
-  var style = event.target.value;
-  storeStyle(style);
-  setActiveStyle(style);
-}
-
-export function resetStyle() {
+function resetStyle() {
   window.localStorage.removeItem(styleKey);
   setActiveStyle(defaultStyle);
 }
@@ -169,18 +165,30 @@ var curatedStyles = [
 
 var defaultStyle = curatedStyles[Math.floor(Math.random()*curatedStyles.length)]
 
-export function init() {
-  // preload all curated styles to prevent flickering
-  curatedStyles.forEach(function(style) {
-    var link = link = document.createElement('link');
-    link.rel = "alternate stylesheet";
-    link.title = style;
-    link.type = "text/css";
-    link.href = "/css/base16/base16-"+style+".css";
-    link.media = "all";
-    document.head.appendChild(link);
-  });
+// preload all curated styles to prevent flickering
+curatedStyles.forEach(function(style) {
+  var link = link = document.createElement('link');
+  link.rel = "alternate stylesheet";
+  link.title = style;
+  link.type = "text/css";
+  link.href = "/css/base16/base16-"+style+".css";
+  link.media = "all";
+  document.head.appendChild(link);
+});
 
+setStyleOrDefault(defaultStyle);
+
+window.onload = function() {
   // call again to update switcher selection
   setStyleOrDefault(defaultStyle);
+
+  document.querySelectorAll(".stderr pre").forEach(function(item) {
+    item.scrollTop = item.scrollHeight;
+  });
+}
+
+export function switchStyle(event) {
+  var style = event.target.value;
+  storeStyle(style);
+  setActiveStyle(style);
 }

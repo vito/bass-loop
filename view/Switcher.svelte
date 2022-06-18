@@ -1,14 +1,14 @@
 <script>
-  import { onMount } from 'svelte';
-
-  import * as style from './style';
   import Base16Options from './Base16Options.svelte';
-
-  onMount(() => {
-    style.init();
-  });
 </script>
 
-<select>
-  <Base16Options />
-</select>
+<div>
+  <select id="styleswitcher">
+    <Base16Options />
+  </select>
+
+  <script type="module">
+    import { switchStyle } from "./js/switcher.js";
+    document.getElementById("styleswitcher").onchange = switchStyle;
+  </script>
+</div>
