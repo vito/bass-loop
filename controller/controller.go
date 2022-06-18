@@ -5,12 +5,14 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"html/template"
 	"math/rand"
 	"time"
 
 	svg "github.com/ajstarks/svgo"
 	"github.com/vito/bass-loop/controller/run"
 	"github.com/vito/bass-loop/pkg/blobs"
+	"github.com/vito/bass-loop/pkg/db"
 	"github.com/vito/bass-loop/pkg/logs"
 	"github.com/vito/bass-loop/pkg/models"
 	"github.com/vito/invaders"
@@ -18,14 +20,14 @@ import (
 )
 
 type Controller struct {
-	DB    *models.Conn
+	DB    *db.DB
 	Blobs *blobs.Bucket
 	Log   *logs.Logger
 }
 
 // Home struct
 type Home struct {
-	Runs []*run.Run `json:"runs"`
+	Runs []*run.Run
 }
 
 // Index of homes
@@ -62,25 +64,23 @@ func (c *Controller) Index(ctx context.Context) (*Home, error) {
 			return nil, fmt.Errorf("get run user: %w", err)
 		}
 
-		avatar, err := thunkAvatar(thunk.Digest)
-		if err != nil {
-			return nil, fmt.Errorf("run avatar: %w", err)
-		}
-
-		logger.Debug("run", zap.String("run", r.ID))
+		// avatar, err := thunkAvatar(thunk.Digest)
+		// if err != nil {
+		// 	return nil, fmt.Errorf("run avatar: %w", err)
+		// }
 
 		home.Runs = append(home.Runs, &run.Run{
-			Run:    model,
-			User:   user,
-			Thunk:  thunk,
-			Avatar: avatar,
+			Run:   model,
+			User:  user,
+			Thunk: thunk,
+			// Avatar: avatar,
 		})
 	}
 
 	return home, nil
 }
 
-func thunkAvatar(thunkDigest string) (string, error) {
+func thunkAvatar(thunkDigest string) (template.HTML, error) {
 	h := fnv.New64a()
 	if _, err := h.Write([]byte(thunkDigest)); err != nil {
 		return "", err
@@ -143,5 +143,5 @@ func thunkAvatar(thunkDigest string) (string, error) {
 	canvas.Gend()
 	canvas.End()
 
-	return avatarSvg.String(), nil
+	return template.HTML(avatarSvg.String()), nil
 }

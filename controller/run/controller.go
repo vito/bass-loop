@@ -9,19 +9,15 @@ import (
 
 type Controller struct {
 	// Dependencies...
-	*models.Conn
 }
 
 // Run struct
 type Run struct {
-	*models.Run
-
-	User     *models.User     `json:"user"`
-	Thunk    *models.Thunk    `json:"thunk"`
-	Vertexes []*vertex.Vertex `json:"vertexes"`
-
-	// TODO: might be faster to send this as JSON data instead
-	Avatar string `json:"avatar"`
+	Run   *models.Run
+	User  *models.User
+	Thunk *models.Thunk
+	// Avatar   template.HTML
+	Vertexes []*vertex.Vertex
 }
 
 // Index of runs
