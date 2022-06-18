@@ -1,4 +1,4 @@
-package db
+package models
 
 import (
 	"database/sql"
@@ -14,15 +14,19 @@ import (
 	"github.com/vito/bass-loop/pkg/cfg"
 )
 
-type DB struct {
-	db *sql.DB
+type Conn struct {
+	*sql.DB
 }
 
-func New(config *cfg.Config) (*DB, error) {
-	return openDB(config)
+func Open(config *cfg.Config) (*Conn, error) {
+	db, err := open(config)
+	if err != nil {
+		return nil, fmt.Errorf("open db: %w", err)
+	}
+	return &Conn{db}, nil
 }
 
-func openDB(config *cfg.Config) (*sql.DB, error) {
+func open(config *cfg.Config) (*sql.DB, error) {
 	if config.SQLitePath == "" {
 		defaultPath, err := xdg.DataFile("bass-loop/loop.db")
 		if err != nil {

@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/clarafu/envstruct"
-	"github.com/vito/bass-loop/pkg/runnel"
 )
 
 type Config struct {
@@ -20,7 +19,7 @@ type Config struct {
 	// for Let's Encrypt autocert
 	TLSDomain string `env:"TLS_DOMAIN"`
 
-	SSH runnel.Server `env:"SSH"`
+	SSH RunnelConfig `env:"SSH"`
 
 	SQLitePath  string `env:"SQLITE_PATH"`
 	BlobsBucket string `env:"BLOBS_BUCKET"`
@@ -38,6 +37,12 @@ type GithubAppConfig struct {
 	PrivateKeyPath    string `env:"PRIVATE_KEY_PATH"`
 	PrivateKeyContent string `env:"PRIVATE_KEY"`
 	WebhookSecret     string `env:"WEBHOOK_SECRET"`
+}
+
+type RunnelConfig struct {
+	Addr           string `env:"SSH_ADDR"`
+	HostKeyPath    string `env:"SSH_HOST_KEY_PATH"`
+	HostKeyContent string `env:"SSH_HOST_KEY"`
 }
 
 func (config GithubAppConfig) PrivateKey() ([]byte, error) {
@@ -69,7 +74,7 @@ func New() (*Config, error) {
 				}
 			},
 		},
-	}.FetchEnv(&env)
+	}.FetchEnv(env)
 	if err != nil {
 		return nil, err
 	}
