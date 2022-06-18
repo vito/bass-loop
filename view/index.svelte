@@ -15,9 +15,9 @@
 
   <Header />
 
-  <h2>thunk runs</h2>
+  <h2><span class="header-text">thunk runs</span></h2>
 
-  <ul class="thunks">
+  <ul class="thunk-runs">
     {#if home.runs.length == 0}
       <li class="none">none</li>
     {/if}
@@ -42,5 +42,34 @@
     font-weight: 400;
     line-height: 1.6;
     padding: var(--page-margin);
+  }
+
+  h2 {
+    font-family: var(--monospace-font);
+    margin-top: 0;
+  }
+
+  .header-text {
+    background: var(--highlight-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .thunk-runs {
+    color: var(--base04);
+  }
+
+  .thunk-runs {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .thunk-runs li {
+    margin-bottom: 10px;
+
+    display: flex;
+    flex-direction: column;
   }
 </style>

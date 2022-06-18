@@ -69,15 +69,34 @@ func (c *Controller) Index(ctx context.Context) (*Home, error) {
 
 		logger.Debug("run", zap.String("run", r.ID))
 
-		home.Runs = append(home.Runs, &run.Run{
-			Run:    model,
-			User:   user,
-			Thunk:  thunk,
-			Avatar: avatar,
-		})
+		run := &run.Run{
+			Run:       model,
+			User:      user,
+			Thunk:     thunk,
+			Avatar:    avatar,
+			Succeeded: model.Succeeded.Int64 == 1,
+		}
+
+		if model.EndTime != nil {
+			run.Duration = duration(model.EndTime.Time().Sub(model.StartTime.Time()))
+		}
+
+		home.Runs = append(home.Runs, run)
 	}
 
 	return home, nil
+}
+
+func duration(dt time.Duration) string {
+	prec := 1
+	sec := dt.Seconds()
+	if sec < 10 {
+		prec = 2
+	} else if sec < 100 {
+		prec = 1
+	}
+
+	return fmt.Sprintf("%.[2]*[1]fs", sec, prec)
 }
 
 func thunkAvatar(thunkDigest string) (string, error) {

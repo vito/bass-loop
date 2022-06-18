@@ -20,6 +20,9 @@ type Run struct {
 	Thunk    *models.Thunk    `json:"thunk"`
 	Vertexes []*vertex.Vertex `json:"vertexes"`
 
+	Succeeded bool   `json:"succeeded"`
+	Duration  string `json:"duration"`
+
 	// TODO: might be faster to send this as JSON data instead
 	Avatar string `json:"avatar"`
 }
