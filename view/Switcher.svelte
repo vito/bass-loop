@@ -2,7 +2,7 @@
   import Base16Options from './Base16Options.svelte';
 </script>
 
-<div>
+<div class="style-switcher">
   <select id="styleswitcher">
     <Base16Options />
   </select>
