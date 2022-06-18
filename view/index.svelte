@@ -10,9 +10,7 @@
   };
 </script>
 
-<main class="page">
-  {@html `<style id="default-theme">:root {${style.vars.join(";")}}</style>`}
-
+<main>
   <Header />
 
   <h2><span class="header-text">thunk runs</span></h2>

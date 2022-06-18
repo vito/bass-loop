@@ -3,17 +3,24 @@
   import { style } from './DefaultStyle.js';
 </script>
 
+<svelte:head>
+  {@html `<style id="default-theme">:root {${style.vars.join(";")}}</style>`}
+
+  <script type="module">
+    // do this in <head> so the style gets set ASAP (preventing flicker)
+    import { setStyleIfSet } from "/js/switcher.js";
+    setStyleIfSet();
+  </script>
+</svelte:head>
+
 <div class="choose-theme" id="choosetheme">
   <select id="styleswitcher" value={style.scheme} data-default={style.scheme}>
     <Base16Options />
   </select>
 
   <script type="module">
-    import { switchStyle, setStyleIfSet } from "./js/switcher.js";
-
+    import { switchStyle } from "/js/switcher.js";
     document.getElementById("styleswitcher").onchange = switchStyle;
-
-    setStyleIfSet();
   </script>
 </div>
 
