@@ -17,10 +17,7 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/vito/bass-loop/ico"
-	"github.com/vito/bass-loop/js"
 	"github.com/vito/bass-loop/pkg/github"
-	"github.com/vito/bass-loop/pkg/webui"
 )
 
 // MaxBytes is the maximum size of a request payload.
@@ -45,25 +42,6 @@ func httpServe(ctx context.Context, db *sql.DB, blobs *blob.Bucket) error {
 	dispatches := new(errgroup.Group)
 
 	router := httprouter.New()
-
-	router.ServeFiles("/css/*filepath", http.FS(os.DirFS("css")))
-	router.ServeFiles("/js/*filepath", http.FS(js.FS))
-	router.ServeFiles("/ico/*filepath", http.FS(ico.FS))
-
-	router.Handler("GET", "/runs/:run", &webui.RunHandler{
-		DB:    db,
-		Blobs: blobs,
-	})
-
-	router.Handler("GET", "/thunks/:thunk", &webui.ThunkHandler{
-		DB:    db,
-		Blobs: blobs,
-	})
-
-	router.Handler("GET", "/", &webui.IndexHandler{
-		DB:    db,
-		Blobs: blobs,
-	})
 
 	if config.GitHubApp.ID != 0 {
 		keyContent, err := config.GitHubApp.PrivateKey()
