@@ -1,5 +1,5 @@
 <script>
-  import Header from './Header.svelte';
+  import RunHeader from './RunHeader.svelte';
   import Footer from '../Footer.svelte';
 
   import Run from '../Run.svelte'
@@ -8,8 +8,12 @@
   export let run = {}
 </script>
 
+<svelte:head>
+  <title>run {run.id} ; bass loop</title>
+</svelte:head>
+
 <main>
-  <Header {run} />
+  <RunHeader {run} />
 
   {#each run.vertexes as vertex}
     <Vertex {vertex} />

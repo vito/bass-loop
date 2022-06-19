@@ -32,7 +32,7 @@
   }
 
   .avatar {
-    justify-self: flex-end;
+    margin-left: auto;
   }
 
   .title {

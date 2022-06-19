@@ -1,28 +1,24 @@
 <script>
-  export let thunk = {}
+  import Header from '../Header.svelte';
+  import Footer from '../Footer.svelte';
+
+  import Title from '../Title.svelte';
+  import Runs from '../Runs.svelte';
+
+  export let thunk = {};
 </script>
 
-<h1>Showing Thunk</h1>
+<svelte:head>
+  <title>thunk {thunk.digest} ; bass loop</title>
+</svelte:head>
 
-<table border="1" cellpadding="10">
-  <thead>
-    {#each Object.keys(thunk) as key}
-      <th>{key}</th>
-    {/each}
-  </thead>
-  <tr>
-    {#each Object.keys(thunk) as key}
-      <td>{thunk[key]}</td>
-    {/each}
-  </tr>
-</table>
-
-<br />
-
-<a href="/thunk">Back</a>
+<main>
+  <Header />
+  <Title text="Runs" />
+  <Runs runs={thunk.runs} />
+  <Footer />
+</main>
 
 <style>
-  table {
-    border-collapse: collapse;
-  }
+  @import "/css/global.css";
 </style>

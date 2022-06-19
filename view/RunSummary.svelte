@@ -17,7 +17,7 @@
       unfinished
     {/if}
   </li>
-  <li><strong>thunk</strong> <a class="name" href="/thunks/{run.thunk.digest}">{run.thunk.digest}</a></li>
+  <li><strong>thunk</strong> <a class="name" href="/thunk/{run.thunk.digest}">{run.thunk.digest}</a></li>
 </ul>
 
 <style>
