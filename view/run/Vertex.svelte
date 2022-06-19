@@ -35,9 +35,11 @@
   {/if}
 </div>
 
-<style>
-  @import "/css/ansi.css";
+<svelte:head>
+  <link rel="stylesheet" href="/css/ansi.css" />
+</svelte:head>
 
+<style>
   .vertex {
     line-height: 20px;
     font-size: 16px;
