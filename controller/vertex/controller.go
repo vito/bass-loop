@@ -3,7 +3,6 @@ package vertex
 import (
 	"context"
 	"fmt"
-	"html/template"
 
 	"github.com/vito/bass-loop/pkg/models"
 )
@@ -16,13 +15,14 @@ type Controller struct {
 type Vertex struct {
 	*models.Vertex
 
-	Duration string
-	Lines    []Line
+	Num      int    `json:"num"`
+	Duration string `json:"duration"`
+	Lines    []Line `json:"lines"`
 }
 
 type Line struct {
-	Number  int
-	Content template.HTML
+	Num     int    `json:"num"`
+	Content string `json:"content"`
 }
 
 // Index of runs

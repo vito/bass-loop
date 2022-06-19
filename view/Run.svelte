@@ -5,10 +5,7 @@
 
 <div class="thunk-run">
   <a class="avatar" href="/thunks/{run.thunk.digest}">{@html run.avatar}</a>
-  <ul class="summary">
-    <li><RunSummary {run} /></li>
-    <li><strong>thunk</strong> <a class="name" href="/thunks/{run.thunk.digest}">{run.thunk.digest}</a></li>
-  </ul>
+  <RunSummary {run} />
 </div>
 
 <style>
@@ -27,14 +24,11 @@
   .thunk-run {
     display: flex;
     flex-direction: row;
-    font-size: 16px;
     align-items: center;
   }
 
-  .summary {
-    list-style: none;
-    margin-left: 15px;
-    padding: 0;
+  .avatar {
+    margin-right: 15px;
   }
 
   .avatar :global(svg) {

@@ -1,28 +1,24 @@
 <script>
+  import Header from './Header.svelte';
+  import Footer from '../Footer.svelte';
+
+  import Run from '../Run.svelte'
+  import Vertex from './Vertex.svelte'
+
   export let run = {}
 </script>
 
-<h1>Showing Run</h1>
+<main>
+  <Header {run} />
 
-<table border="1" cellpadding="10">
-  <thead>
-    {#each Object.keys(run) as key}
-      <th>{key}</th>
-    {/each}
-  </thead>
-  <tr>
-    {#each Object.keys(run) as key}
-      <td>{run[key]}</td>
-    {/each}
-  </tr>
-</table>
+  {#each run.vertexes as vertex}
+    <Vertex {vertex} />
+  {/each}
 
-<br />
 
-<a href="/run">Back</a>
+  <Footer />
+</main>
 
 <style>
-  table {
-    border-collapse: collapse;
-  }
+  @import "/css/global.css";
 </style>

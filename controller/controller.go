@@ -18,9 +18,9 @@ import (
 )
 
 type Controller struct {
+	Log   *logs.Logger
 	DB    *models.Conn
 	Blobs *blobs.Bucket
-	Log   *logs.Logger
 }
 
 // Home struct
@@ -66,8 +66,6 @@ func (c *Controller) Index(ctx context.Context) (*Home, error) {
 		if err != nil {
 			return nil, fmt.Errorf("run avatar: %w", err)
 		}
-
-		logger.Debug("run", zap.String("run", r.ID))
 
 		run := &run.Run{
 			Run:       model,

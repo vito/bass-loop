@@ -1,5 +1,4 @@
-// based on https://github.com/ttys3/base16-chroma/blob/master/templates/cssvar.mustache
-// thanks!
+/* based on https://github.com/ttys3/base16-chroma/blob/master/templates/cssvar.mustache */
 
 .highlight {
   --color-b16-bg:         var(--base00);   /* Default Background */
@@ -139,3 +138,8 @@
 /* .chroma .language-go .p */
 .k { color: var(--base0E); }
 .s { color: var(--base0B); }
+
+.ansi-line::empty:before {
+  // prevent collapsing blank lines of output
+  content: " ";
+}

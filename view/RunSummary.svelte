@@ -2,20 +2,32 @@
   export let run = {};
 </script>
 
-<strong>run</strong> <a class="name" href="/runs/{run.id}">{run.id}</a>
-by <a class="username" href="https://github.com/{run.user.login}">@{run.user.login}</a>
-{#if run.end_time}
-  {#if run.succeeded}
-    <span class="succeeded">succeeded</span>
-  {:else}
-    <span class="failed">failed</span>
-  {/if}
-  in {run.duration}
-{:else}
-  unfinished
-{/if}
+<ul class="summary">
+  <li>
+    <strong>run</strong> <a class="name" href="/run/{run.id}">{run.id}</a>
+    by <a class="username" href="https://github.com/{run.user.login}">@{run.user.login}</a>
+    {#if run.end_time}
+      {#if run.succeeded}
+        <span class="succeeded">succeeded</span>
+      {:else}
+        <span class="failed">failed</span>
+      {/if}
+      in {run.duration}
+    {:else}
+      unfinished
+    {/if}
+  </li>
+  <li><strong>thunk</strong> <a class="name" href="/thunks/{run.thunk.digest}">{run.thunk.digest}</a></li>
+</ul>
 
 <style>
+  .summary {
+    font-size: 16px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
   a.name {
     font-family: var(--monospace-font);
     color: var(--base05);
