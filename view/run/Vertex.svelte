@@ -11,14 +11,26 @@
     <div class="vertex-duration"><code>[{vertex.duration}]</code></div>
     {/if}
   </div>
-  {#if vertex.error.Valid}
-  <pre class="vertex-error"><span class="ansi-line"><span class="fg-red">{vertex.error.String}</span></span></pre>
-  {/if}
-  {#if vertex.lines.length > 0}
+  {#if vertex.lines.length > 0 || vertex.error.Valid}
   <table class="vertex-logs">
     {#each vertex.lines as line}
-      <tr><td id="V{vertex.num}L{line.num}" class="number"><a href="#V{vertex.num}L{line.num}" data-line-number="{line.num}"></a></td><td class="content">{@html line.content}</td></tr>
+      <tr>
+        <td id="V{vertex.num}L{line.num}" class="number">
+          <a href="#V{vertex.num}L{line.num}" data-line-number="{line.num}"></a>
+        </td>
+        <td class="content">{@html line.content}</td>
+      </tr>
     {/each}
+    {#if vertex.error.Valid}
+      <tr>
+        <td id="V{vertex.num}ERR" class="number">
+          <a href="#V{vertex.num}ERR" data-line-number="ERR"></a>
+        </td>
+        <td class="content">
+          <span class="ansi-line"><span class="fg-red">{vertex.error.String}</span></span>
+        </td>
+      </tr>
+    {/if}
   </table>
   {/if}
 </div>
