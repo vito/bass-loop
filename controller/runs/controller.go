@@ -22,7 +22,7 @@ type ShowProps struct {
 }
 
 // Show run
-// GET /run/:id
+// GET /runs/:id
 func (c *Controller) Show(ctx context.Context, id string) (props *ShowProps, err error) {
 	model, err := models.RunByID(ctx, c.Conn, id)
 	if err != nil {

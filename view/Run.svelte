@@ -4,7 +4,7 @@
 </script>
 
 <div class="thunk-run">
-  <a class="avatar" href="/thunk/{run.thunk.digest}">{@html run.thunk.avatar}</a>
+  <a class="avatar" href="/thunks/{run.thunk.digest}">{@html run.thunk.avatar}</a>
   <RunSummary {run} />
 </div>
 

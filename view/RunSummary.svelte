@@ -4,7 +4,7 @@
 
 <ul class="summary">
   <li>
-    <strong>run</strong> <a class="name" href="/run/{run.id}">{run.id}</a>
+    <strong>run</strong> <a class="name" href="/runs/{run.id}">{run.id}</a>
     by <a class="username" href="https://github.com/{run.user.login}">@{run.user.login}</a>
     {#if run.completed_at}
       {#if run.succeeded}
@@ -17,7 +17,7 @@
       unfinished
     {/if}
   </li>
-  <li><strong>thunk</strong> <a class="name" href="/thunk/{run.thunk.digest}">{run.thunk.digest}</a></li>
+  <li><strong>thunk</strong> <a class="name" href="/thunks/{run.thunk.digest}">{run.thunk.digest}</a></li>
 </ul>
 
 <style>

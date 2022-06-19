@@ -24,7 +24,7 @@ type ShowProps struct {
 }
 
 // Show thunk
-// GET /thunk/:id
+// GET /thunks/:id
 func (c *Controller) Show(ctx context.Context, id string) (props *ShowProps, err error) {
 	props = &ShowProps{}
 

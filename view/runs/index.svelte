@@ -1,24 +1,24 @@
 <script>
-  export let thunks = []
+  export let runs = []
 </script>
 
-<h1>Thunk Index</h1>
+<h1>Run Index</h1>
 
 <table border="1" cellpadding="10">
-  {#if thunks.length > 0}
+  {#if runs.length > 0}
     <thead>
-      {#each Object.keys(thunks[0]) as key}
+      {#each Object.keys(runs[0]) as key}
         <th>{key}</th>
       {/each}
     </thead>
   {/if}
-  {#each thunks as thunk}
+  {#each runs as run}
     <tr>
-      {#each Object.keys(thunk) as key}
+      {#each Object.keys(run) as key}
         {#if key.toLowerCase() === "id"}
-          <td><a href={`/thunk/${thunk[key]}`}>{thunk[key]}</a></td>
+          <td><a href={`/runs/${run[key]}`}>{run[key]}</a></td>
         {:else}
-          <td>{thunk[key]}</td>
+          <td>{run[key]}</td>
         {/if}
       {/each}
     </tr>
