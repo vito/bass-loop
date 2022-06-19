@@ -5,7 +5,13 @@
   import Run from '../Run.svelte'
   import Vertex from './Vertex.svelte'
 
-  export let run = {}
+  export let props = {
+    run: {},
+    vertexes: [],
+  }
+
+  export let run = props.run;
+  export let vertexes = props.vertexes;
 </script>
 
 <svelte:head>
@@ -15,7 +21,7 @@
 <main>
   <RunHeader {run} />
 
-  {#each run.vertexes as vertex}
+  {#each vertexes as vertex}
     <Vertex {vertex} />
   {/each}
 

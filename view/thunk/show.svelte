@@ -5,7 +5,13 @@
   import Title from '../Title.svelte';
   import Runs from '../Runs.svelte';
 
-  export let thunk = {};
+  export let props = {
+    thunk: {},
+    runs: [],
+  };
+
+  export let thunk = props.thunk;
+  export let runs = props.runs;
 </script>
 
 <svelte:head>
@@ -15,7 +21,7 @@
 <main>
   <Header />
   <Title text="Runs" />
-  <Runs runs={thunk.runs} />
+  <Runs runs={runs} />
   <Footer />
 </main>
 

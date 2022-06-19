@@ -13,7 +13,7 @@
     <span class="title">run log</span>
     <RunSummary {run} />
   </div>
-  <a class="avatar" href="/thunk/{run.thunk.digest}">{@html run.avatar}</a>
+  <a class="avatar" href="/thunk/{run.thunk.digest}">{@html run.thunk.avatar}</a>
 </header>
 
 <style>

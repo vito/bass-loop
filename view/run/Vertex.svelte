@@ -2,7 +2,7 @@
   export let vertex = {}
 </script>
 
-<div class="vertex" class:cached={vertex.cached} class:error={vertex.error.Valid}>
+<div class="vertex" class:cached={vertex.cached} class:error={vertex.error}>
   <div class="vertex-info">
     <div class="vertex-name"><code>{vertex.name}</code></div>
     {#if vertex.cached}
@@ -11,23 +11,23 @@
     <div class="vertex-duration"><code>[{vertex.duration}]</code></div>
     {/if}
   </div>
-  {#if vertex.lines.length > 0 || vertex.error.Valid}
+  {#if vertex.lines.length > 0 || vertex.error}
   <table class="vertex-logs">
-    {#each vertex.lines as line}
+    {#each vertex.lines as line, lnum}
       <tr>
-        <td id="V{vertex.num}L{line.num}" class="number">
-          <a href="#V{vertex.num}L{line.num}" data-line-number="{line.num}"></a>
+        <td id="V{vertex.num}L{lnum+1}" class="number">
+          <a href="#V{vertex.num}L{lnum+1}" data-line-number="{lnum+1}"></a>
         </td>
         <td class="content">{@html line.content}</td>
       </tr>
     {/each}
-    {#if vertex.error.Valid}
+    {#if vertex.error}
       <tr>
         <td id="V{vertex.num}ERR" class="number">
           <a href="#V{vertex.num}ERR" data-line-number="ERR"></a>
         </td>
         <td class="content">
-          <span class="ansi-line"><span class="fg-red">{vertex.error.String}</span></span>
+          <span class="ansi-line"><span class="fg-red">{vertex.error}</span></span>
         </td>
       </tr>
     {/if}

@@ -6,7 +6,7 @@
   <li>
     <strong>run</strong> <a class="name" href="/run/{run.id}">{run.id}</a>
     by <a class="username" href="https://github.com/{run.user.login}">@{run.user.login}</a>
-    {#if run.end_time}
+    {#if run.completed_at}
       {#if run.succeeded}
         <span class="succeeded">succeeded</span>
       {:else}
