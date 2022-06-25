@@ -13,7 +13,6 @@ require (
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/google/go-github/v43 v43.0.0
-	github.com/julienschmidt/httprouter v1.3.0
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/opencontainers/go-digest v1.0.0
@@ -41,7 +40,9 @@ require (
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09 // indirect
+	go.kuoruan.net/v8go-polyfills v0.5.0 // indirect
 	golang.org/x/mod v0.5.1 // indirect
+	rogchap.com/v8go v0.7.0 // indirect
 )
 
 require (
