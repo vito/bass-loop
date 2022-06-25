@@ -12,10 +12,14 @@
 (defn build [src]
   (from (linux/golang)
     (cd src/pkg/bud/
-      ($ go install .))
+      ($ go install -buildvcs=false .))
     (cd src/
       ($ bud build))))
 
 ; called by bass-loop
 (defn github-hook [event client]
   (github:check-hook event client git checks))
+
+(defn main []
+  (for [{:src src} *stdin*]
+    (run (build src))))
