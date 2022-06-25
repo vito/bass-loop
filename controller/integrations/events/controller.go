@@ -103,14 +103,11 @@ func (c *Controller) handleGithub(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type RepoEvent struct {
-	Repo         *github.Repository   `json:"repository"`
-	Sender       *github.User         `json:"sender"`
-	Installation *github.Installation `json:"installation"`
-}
-
 func (c *Controller) Handle(ctx context.Context, eventName, deliveryID string, payload []byte) error {
-	logger := zapctx.FromContext(ctx).With(zap.String("event", eventName), zap.String("delivery", deliveryID))
+	logger := zapctx.FromContext(ctx).With(
+		zap.String("event", eventName),
+		zap.String("delivery", deliveryID),
+	)
 
 	logger.Info("handling")
 
@@ -120,43 +117,63 @@ func (c *Controller) Handle(ctx context.Context, eventName, deliveryID string, p
 		return fmt.Errorf("payload->scope: %w", err)
 	}
 
-	var repoEvent RepoEvent
-	err = json.Unmarshal(payload, &repoEvent)
+	// attempt to parse a check suite event from the payload so that we can use
+	// its sha instead of the default branch for faster iteration on check
+	// changes
+	//
+	// if it's not a CheckSuiteEvent we'll at least use the Repo field to route
+	// the event
+	var maybeSuiteEvent github.CheckSuiteEvent
+	err = json.Unmarshal(payload, &maybeSuiteEvent)
 	if err != nil {
-		return err
+		return fmt.Errorf("unmarshal check suite: %w", err)
+	}
+
+	if maybeSuiteEvent.Sender == nil || maybeSuiteEvent.Repo == nil || maybeSuiteEvent.Installation == nil {
+		// be defensive just because we don't really know what events we'll receive
+		logger.Warn("ignoring unknown event")
+		return nil
 	}
 
 	logger = logger.With(
-		zap.String("sender", repoEvent.Sender.GetLogin()),
+		zap.String("sender", maybeSuiteEvent.Sender.GetLogin()),
+		zap.String("repo", maybeSuiteEvent.Repo.GetFullName()),
 	)
 
-	if repoEvent.Repo != nil && repoEvent.Installation != nil {
-		c.dispatches.Go(func() error {
-			err := c.dispatch(
-				zapctx.ToContext(context.Background(), logger),
-				repoEvent.Installation.GetID(),
-				repoEvent.Sender,
-				repoEvent.Repo,
-				eventName,
-				deliveryID,
-				payloadScope,
-			)
-			if err != nil {
-				logger.Warn("dispatch errored", zap.Error(err))
+	// handle the rest async
+	c.dispatches.Go(func() error {
+		defer func() {
+			// we're forking a goroutine from a goroutine, so prevent panics from
+			// taking down the whole loop
+			if err := recover(); err != nil {
+				logger.Error("dispatch panic!", zap.Any("recovered", err))
 			}
+		}()
 
-			return nil
-		})
-	} else {
-		logger.Warn("ignoring unknown event")
-	}
+		err := c.dispatch(
+			zapctx.ToContext(context.Background(), logger),
+			maybeSuiteEvent,
+			eventName,
+			deliveryID,
+			payloadScope,
+		)
+		if err != nil {
+			logger.Warn("dispatch errored", zap.Error(err))
+		}
+
+		return nil
+	})
 
 	return nil
 }
 
-func (c *Controller) dispatch(ctx context.Context, instID int64, sender *github.User, repo *github.Repository, eventName, deliveryID string, payloadScope *bass.Scope) error {
+func (c *Controller) dispatch(ctx context.Context, maybeSuiteEvent github.CheckSuiteEvent, eventName, deliveryID string, payloadScope *bass.Scope) error {
 	// each concurrent Bass must have its own trace
 	ctx = bass.WithTrace(context.Background(), &bass.Trace{})
+
+	instID := maybeSuiteEvent.GetInstallation().GetID()
+	sender := maybeSuiteEvent.GetSender()
+	repo := maybeSuiteEvent.GetRepo()
 
 	// load the user's forwarded runtime pool
 	ctx, pool, err := c.withUserPool(ctx, sender)
@@ -169,14 +186,21 @@ func (c *Controller) dispatch(ctx context.Context, instID int64, sender *github.
 		Transport: ghinstallation.NewFromAppsTransport(c.Transport, instID),
 	})
 
-	branch, _, err := ghClient.Repositories.GetBranch(ctx, repo.GetOwner().GetLogin(), repo.GetName(), repo.GetDefaultBranch(), true)
-	if err != nil {
-		return fmt.Errorf("get branch: %w", err)
+	var ref string
+	if maybeSuiteEvent.CheckSuite != nil {
+		ref = maybeSuiteEvent.CheckSuite.GetHeadSHA()
+	} else {
+		branch, _, err := ghClient.Repositories.GetBranch(ctx, repo.GetOwner().GetLogin(), repo.GetName(), repo.GetDefaultBranch(), true)
+		if err != nil {
+			return fmt.Errorf("get branch: %w", err)
+		}
+
+		ref = branch.GetCommit().GetSHA()
 	}
 
 	hookThunk := bass.Thunk{
 		Cmd: bass.ThunkCmd{
-			FS: bassgh.NewFS(ctx, ghClient, repo, branch, "project.bass"),
+			FS: bassgh.NewFS(ctx, ghClient, repo, ref, "project.bass"),
 		},
 	}
 

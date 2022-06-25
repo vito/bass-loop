@@ -21,19 +21,19 @@ type FS struct {
 	Ctx    context.Context
 	Client *github.Client
 	Repo   *github.Repository
-	Branch *github.Branch
+	Ref    string
 
 	cache  map[string]*github.RepositoryContent
 	cacheL *sync.Mutex
 }
 
-func NewFS(ctx context.Context, client *github.Client, repo *github.Repository, branch *github.Branch, subPath string) *bass.FSPath {
+func NewFS(ctx context.Context, client *github.Client, repo *github.Repository, ref, subPath string) *bass.FSPath {
 	return bass.NewFSPath(
 		&FS{
 			Ctx:    ctx,
 			Client: client,
 			Repo:   repo,
-			Branch: branch,
+			Ref:    ref,
 
 			cache:  map[string]*github.RepositoryContent{},
 			cacheL: new(sync.Mutex),
@@ -46,7 +46,7 @@ func (ghfs *FS) Open(name string) (fs.File, error) {
 	logger := zapctx.FromContext(ghfs.Ctx).With(
 		zap.String("repo", ghfs.Repo.GetFullName()),
 		zap.String("path", name),
-		zap.String("sha", ghfs.Branch.GetCommit().GetSHA()),
+		zap.String("sha", ghfs.Ref),
 	)
 
 	ghfs.cacheL.Lock()
@@ -65,7 +65,7 @@ func (ghfs *FS) Open(name string) (fs.File, error) {
 			ghfs.Repo.GetName(),
 			name,
 			&github.RepositoryContentGetOptions{
-				Ref: ghfs.Branch.GetCommit().GetSHA(),
+				Ref: ghfs.Ref,
 			},
 		)
 		if err != nil {
@@ -107,7 +107,7 @@ func (f *ghFile) Stat() (fs.FileInfo, error) {
 		f.fs.Repo.GetName(),
 		parent,
 		&github.RepositoryContentGetOptions{
-			Ref: f.fs.Branch.GetCommit().GetSHA(),
+			Ref: f.fs.Ref,
 		},
 	)
 	if err != nil {
