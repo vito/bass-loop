@@ -60,4 +60,4 @@ go.work.sum
 node_modules
 
 # hey bud
-bud
+/bud
