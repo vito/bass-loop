@@ -14,16 +14,14 @@ import (
 	"github.com/vito/bass-loop/pkg/cfg"
 )
 
-type Conn struct {
-	*sql.DB
-}
+type Conn = sql.DB
 
 func Open(config *cfg.Config) (*Conn, error) {
 	db, err := open(config)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
-	return &Conn{db}, nil
+	return db, nil
 }
 
 func open(config *cfg.Config) (*sql.DB, error) {

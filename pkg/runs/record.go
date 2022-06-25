@@ -1,4 +1,4 @@
-package github
+package runs
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"text/template"
 	"time"
 
 	"github.com/aoldershaw/ansi"
@@ -14,10 +15,9 @@ import (
 	"github.com/vito/bass/pkg/cli"
 	"github.com/vito/bass/pkg/zapctx"
 	"go.uber.org/zap"
-	"gocloud.dev/blob"
 )
 
-func CompleteThunkRun(ctx context.Context, db *sql.DB, bucket *blob.Bucket, run *models.Run, progress *cli.Progress, ok bool) error {
+func Record(ctx context.Context, db models.DB, bucket *blobs.Bucket, run *models.Run, progress *cli.Progress, ok bool) error {
 	logger := zapctx.FromContext(ctx)
 
 	completedAt := models.NewTime(time.Now().UTC())
@@ -124,3 +124,19 @@ func CompleteThunkRun(ctx context.Context, db *sql.DB, bucket *blob.Bucket, run 
 
 	return nil
 }
+
+// TODO: support modifiers (bold/etc) - it's a bit tricky, may need changes
+// upstream
+var ANSIHTML = template.Must(template.New("ansi").Parse(`{{- range . -}}
+	<span class="ansi-line">
+		{{- range . -}}
+		{{- if or .Style.Foreground .Style.Background .Style.Modifier -}}
+			<span class="{{with .Style.Foreground}}fg-{{.}}{{end}}{{with .Style.Background}} bg-{{.}}{{end}}">
+				{{- printf "%s" .Data -}}
+			</span>
+		{{- else -}}
+			{{- printf "%s" .Data -}}
+		{{- end -}}
+		{{- end -}}
+	</span>
+{{end}}`))

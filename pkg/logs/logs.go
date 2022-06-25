@@ -5,10 +5,8 @@ import (
 	"go.uber.org/zap"
 )
 
-type Logger struct {
-	*zap.Logger
-}
+type Logger = zap.Logger
 
 func New() *Logger {
-	return &Logger{bass.Logger()}
+	return bass.Logger()
 }

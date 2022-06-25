@@ -1,9 +1,8 @@
-package github
+package bassgh
 
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"fmt"
 	"net/url"
 	"strings"
@@ -11,23 +10,24 @@ import (
 
 	"github.com/google/go-github/v43/github"
 	"github.com/mattn/go-colorable"
+	"github.com/vito/bass-loop/pkg/blobs"
 	"github.com/vito/bass-loop/pkg/models"
+	"github.com/vito/bass-loop/pkg/runs"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
 	"github.com/vito/progrock"
-	"gocloud.dev/blob"
 )
 
-type BassGitHubClient struct {
+type Client struct {
 	ExternalURL *url.URL
-	DB          *sql.DB
-	Blobs       *blob.Bucket
+	DB          models.DB
+	Blobs       *blobs.Bucket
 	GH          *github.Client
 	Sender      *github.User
 	Repo        *github.Repository
 }
 
-func (client *BassGitHubClient) Scope() *bass.Scope {
+func (client *Client) Scope() *bass.Scope {
 	ghscope := bass.NewEmptyScope()
 	ghscope.Set("start-check",
 		bass.Func("start-check", "[thunk name sha]", client.StartCheck))
@@ -35,7 +35,7 @@ func (client *BassGitHubClient) Scope() *bass.Scope {
 	return ghscope
 }
 
-func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk, checkName, sha string) (bass.Combiner, error) {
+func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkName, sha string) (bass.Combiner, error) {
 	run, err := models.CreateThunkRun(ctx, client.DB, client.Sender, thunk)
 	if err != nil {
 		return nil, fmt.Errorf("create thunk run: %w", err)
@@ -81,7 +81,7 @@ func (client *BassGitHubClient) StartCheck(ctx context.Context, thunk bass.Thunk
 	thunkCtx := progrock.RecorderToContext(ctx, progrock.NewRecorder(progress))
 
 	return thunk.Start(thunkCtx, bass.Func("handler", "[ok?]", func(ctx context.Context, ok bool) error {
-		if err := CompleteThunkRun(ctx, client.DB, client.Blobs, run, progress, ok); err != nil {
+		if err := runs.Record(ctx, client.DB, client.Blobs, run, progress, ok); err != nil {
 			return fmt.Errorf("failed to complete: %w", err)
 		}
 

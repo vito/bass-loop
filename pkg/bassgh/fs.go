@@ -1,4 +1,4 @@
-package github
+package bassgh
 
 import (
 	"bytes"
@@ -16,8 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// GHFS is a filesystem that reads from a GitHub repo at a given commit.
-type GHFS struct {
+// FS is a filesystem that reads from a GitHub repo at a given commit.
+type FS struct {
 	Ctx    context.Context
 	Client *github.Client
 	Repo   *github.Repository
@@ -27,9 +27,9 @@ type GHFS struct {
 	cacheL *sync.Mutex
 }
 
-func NewGHPath(ctx context.Context, client *github.Client, repo *github.Repository, branch *github.Branch, subPath string) *bass.FSPath {
+func NewFS(ctx context.Context, client *github.Client, repo *github.Repository, branch *github.Branch, subPath string) *bass.FSPath {
 	return bass.NewFSPath(
-		&GHFS{
+		&FS{
 			Ctx:    ctx,
 			Client: client,
 			Repo:   repo,
@@ -42,7 +42,7 @@ func NewGHPath(ctx context.Context, client *github.Client, repo *github.Reposito
 	)
 }
 
-func (ghfs *GHFS) Open(name string) (fs.File, error) {
+func (ghfs *FS) Open(name string) (fs.File, error) {
 	logger := zapctx.FromContext(ghfs.Ctx).With(
 		zap.String("repo", ghfs.Repo.GetFullName()),
 		zap.String("path", name),
@@ -87,7 +87,7 @@ type ghFile struct {
 	io.Reader
 
 	logger *zap.Logger
-	fs     *GHFS
+	fs     *FS
 	name   string
 }
 

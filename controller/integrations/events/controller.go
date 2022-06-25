@@ -1,18 +1,22 @@
-package github
+package events
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"net/http"
 	"net/url"
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/v43/github"
 	"github.com/opencontainers/go-digest"
+	"github.com/vito/bass-loop/pkg/bassgh"
+	"github.com/vito/bass-loop/pkg/blobs"
+	"github.com/vito/bass-loop/pkg/cfg"
+	"github.com/vito/bass-loop/pkg/ghapp"
+	"github.com/vito/bass-loop/pkg/logs"
 	"github.com/vito/bass-loop/pkg/models"
+	"github.com/vito/bass-loop/pkg/runs"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
 	"github.com/vito/bass/pkg/ioctx"
@@ -21,23 +25,56 @@ import (
 	"github.com/vito/bass/pkg/zapctx"
 	"github.com/vito/progrock"
 	"go.uber.org/zap"
-	"gocloud.dev/blob"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type WebhookHandler struct {
-	ExternalURL   *url.URL
-	DB            *sql.DB
-	Blobs         *blob.Bucket
-	RootCtx       context.Context
-	WebhookSecret string
-	AppsTransport *ghinstallation.AppsTransport
-	Dispatches    *errgroup.Group
+type Controller struct {
+	Log       *logs.Logger
+	DB        *models.Conn
+	Blobs     *blobs.Bucket
+	Config    *cfg.Config
+	Transport *ghapp.Transport
+
+	externalURL *url.URL
+	dispatches  *errgroup.Group
 }
 
-func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+const DefaultExternalURL = "http://localhost:3000"
+
+func Load(log *logs.Logger, config *cfg.Config, db *models.Conn, blobs *blobs.Bucket, transport *ghapp.Transport) *Controller {
+	e := config.ExternalURL
+	if e == "" {
+		e = DefaultExternalURL
+	}
+
+	externalURL, err := url.Parse(e)
+	if err != nil {
+		// XXX: Controllers can't return error atm
+		panic(err)
+	}
+
+	return &Controller{
+		Log:       log,
+		DB:        db,
+		Blobs:     blobs,
+		Config:    config,
+		Transport: transport,
+
+		externalURL: externalURL,
+		dispatches:  new(errgroup.Group),
+	}
+}
+
+func (c *Controller) Create(w http.ResponseWriter, r *http.Request) {
+	switch r.URL.Query().Get("integration_id") {
+	case "github":
+		c.handleGithub(w, r)
+	}
+}
+
+func (c *Controller) handleGithub(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	eventName := r.Header.Get("X-GitHub-Event")
@@ -49,14 +86,14 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payloadBytes, err := github.ValidatePayload(r, []byte(h.WebhookSecret))
+	payloadBytes, err := github.ValidatePayload(r, []byte(c.Config.GitHubApp.WebhookSecret))
 	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		fmt.Fprintln(w, "missing event type")
 		return
 	}
 
-	err = h.Handle(ctx, eventName, deliveryID, payloadBytes)
+	err = c.Handle(ctx, eventName, deliveryID, payloadBytes)
 	if err != nil {
 		cli.WriteError(ctx, err)
 
@@ -72,7 +109,7 @@ type RepoEvent struct {
 	Installation *github.Installation `json:"installation"`
 }
 
-func (h *WebhookHandler) Handle(ctx context.Context, eventName, deliveryID string, payload []byte) error {
+func (c *Controller) Handle(ctx context.Context, eventName, deliveryID string, payload []byte) error {
 	logger := zapctx.FromContext(ctx).With(zap.String("event", eventName), zap.String("delivery", deliveryID))
 
 	logger.Info("handling")
@@ -94,12 +131,9 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventName, deliveryID strin
 	)
 
 	if repoEvent.Repo != nil && repoEvent.Installation != nil {
-		subCtx := bass.ForkTrace(h.RootCtx)
-		subCtx = zapctx.ToContext(subCtx, logger)
-
-		h.Dispatches.Go(func() error {
-			err := h.dispatch(
-				subCtx,
+		c.dispatches.Go(func() error {
+			err := c.dispatch(
+				zapctx.ToContext(context.Background(), logger),
 				repoEvent.Installation.GetID(),
 				repoEvent.Sender,
 				repoEvent.Repo,
@@ -120,16 +154,19 @@ func (h *WebhookHandler) Handle(ctx context.Context, eventName, deliveryID strin
 	return nil
 }
 
-func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *github.User, repo *github.Repository, eventName, deliveryID string, payloadScope *bass.Scope) error {
+func (c *Controller) dispatch(ctx context.Context, instID int64, sender *github.User, repo *github.Repository, eventName, deliveryID string, payloadScope *bass.Scope) error {
+	// each concurrent Bass must have its own trace
+	ctx = bass.WithTrace(context.Background(), &bass.Trace{})
+
 	// load the user's forwarded runtime pool
-	ctx, pool, err := h.withUserPool(ctx, sender)
+	ctx, pool, err := c.withUserPool(ctx, sender)
 	if err != nil {
 		return fmt.Errorf("user %s (%s) pool: %w", sender.GetLogin(), sender.GetNodeID(), err)
 	}
 	defer pool.Close()
 
 	ghClient := github.NewClient(&http.Client{
-		Transport: ghinstallation.NewFromAppsTransport(h.AppsTransport, instID),
+		Transport: ghinstallation.NewFromAppsTransport(c.Transport, instID),
 	})
 
 	branch, _, err := ghClient.Repositories.GetBranch(ctx, repo.GetOwner().GetLogin(), repo.GetName(), repo.GetDefaultBranch(), true)
@@ -139,11 +176,11 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 
 	hookThunk := bass.Thunk{
 		Cmd: bass.ThunkCmd{
-			FS: NewGHPath(ctx, ghClient, repo, branch, "project.bass"),
+			FS: bassgh.NewFS(ctx, ghClient, repo, branch, "project.bass"),
 		},
 	}
 
-	run, err := models.CreateThunkRun(ctx, h.DB, sender, hookThunk)
+	run, err := models.CreateThunkRun(ctx, c.DB, sender, hookThunk)
 	if err != nil {
 		return fmt.Errorf("create hook thunk run: %w", err)
 	}
@@ -163,11 +200,11 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 			"event":   bass.String(eventName),
 			"payload": payloadScope,
 		}.Scope(),
-		(&BassGitHubClient{
-			ExternalURL: h.ExternalURL,
-			DB:          h.DB,
+		(&bassgh.Client{
+			ExternalURL: c.externalURL,
+			DB:          c.DB,
 			GH:          ghClient,
-			Blobs:       h.Blobs,
+			Blobs:       c.Blobs,
 			Sender:      sender,
 			Repo:        repo,
 		}).Scope(),
@@ -178,7 +215,7 @@ func (h *WebhookHandler) dispatch(ctx context.Context, instID int64, sender *git
 
 	rec.Done(err)
 
-	if completeErr := CompleteThunkRun(ctx, h.DB, h.Blobs, run, progress, err == nil); completeErr != nil {
+	if completeErr := runs.Record(ctx, c.DB, c.Blobs, run, progress, err == nil); completeErr != nil {
 		return fmt.Errorf("failed to complete: %w", completeErr)
 	}
 
@@ -221,10 +258,10 @@ func runHook(ctx context.Context, hookThunk bass.Thunk, args bass.List) error {
 	return err
 }
 
-func (h *WebhookHandler) withUserPool(ctx context.Context, user *github.User) (context.Context, *runtimes.Pool, error) {
+func (c *Controller) withUserPool(ctx context.Context, user *github.User) (context.Context, *runtimes.Pool, error) {
 	logger := zapctx.FromContext(ctx)
 
-	rts, err := models.RuntimesByUserID(ctx, h.DB, user.GetNodeID())
+	rts, err := models.RuntimesByUserID(ctx, c.DB, user.GetNodeID())
 	if err != nil {
 		return nil, nil, fmt.Errorf("get runtimes: %w", err)
 	}
@@ -232,7 +269,7 @@ func (h *WebhookHandler) withUserPool(ctx context.Context, user *github.User) (c
 	pool := &runtimes.Pool{}
 
 	for _, rt := range rts {
-		svc, err := models.ServiceByUserIDRuntimeNameService(ctx, h.DB, user.GetNodeID(), rt.Name, runtimes.RuntimeServiceName)
+		svc, err := models.ServiceByUserIDRuntimeNameService(ctx, c.DB, user.GetNodeID(), rt.Name, runtimes.RuntimeServiceName)
 		if err != nil {
 			logger.Error("failed to get service", zap.Error(err))
 			pool.Close()
@@ -263,19 +300,3 @@ func (h *WebhookHandler) withUserPool(ctx context.Context, user *github.User) (c
 	return bass.WithRuntimePool(ctx, pool), pool, nil
 
 }
-
-// TODO: support modifiers (bold/etc) - it's a bit tricky, may need changes
-// upstream
-var ANSIHTML = template.Must(template.New("ansi").Parse(`{{- range . -}}
-	<span class="ansi-line">
-		{{- range . -}}
-		{{- if or .Style.Foreground .Style.Background .Style.Modifier -}}
-			<span class="{{with .Style.Foreground}}fg-{{.}}{{end}}{{with .Style.Background}} bg-{{.}}{{end}}">
-				{{- printf "%s" .Data -}}
-			</span>
-		{{- else -}}
-			{{- printf "%s" .Data -}}
-		{{- end -}}
-		{{- end -}}
-	</span>
-{{end}}`))

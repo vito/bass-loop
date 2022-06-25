@@ -10,9 +10,7 @@ import (
 	"gocloud.dev/blob/fileblob"
 )
 
-type Bucket struct {
-	*blob.Bucket
-}
+type Bucket = blob.Bucket
 
 func Open(config *cfg.Config) (*Bucket, error) {
 	var blobs *blob.Bucket
@@ -32,5 +30,5 @@ func Open(config *cfg.Config) (*Bucket, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open bucket: %w", err)
 	}
-	return &Bucket{blobs}, nil
+	return blobs, nil
 }
