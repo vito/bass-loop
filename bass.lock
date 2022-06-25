@@ -328,5 +328,26 @@ memos: {
         }
       }
     }
+    results: {
+      input: {
+        array: {
+          values: {
+            string: {
+              value: "https://github.com/vito/tabs"
+            }
+          }
+          values: {
+            string: {
+              value: "main"
+            }
+          }
+        }
+      }
+      output: {
+        string: {
+          value: "3a0538e0b93e6116d644a3c751a5381b06438c83"
+        }
+      }
+    }
   }
 }
