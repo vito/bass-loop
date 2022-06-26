@@ -24,10 +24,9 @@
 ; a basic test: does it build?
 (defn build [src]
   (from (deps src)
-    (cd src/pkg/bud/
-      (-> ($ go install -buildvcs=false .)
-          (with-env {:GOBIN "/share/go/bin"})))
     (cd src/
+      (-> ($ go install -buildvcs=false "github.com/livebud/bud")
+          (with-env {:GOBIN "/share/go/bin"}))
       ($ yarn)
       ($ bud build))))
 
