@@ -40,9 +40,9 @@ type GithubAppConfig struct {
 }
 
 type RunnelConfig struct {
-	Addr           string `env:"SSH_ADDR"`
-	HostKeyPath    string `env:"SSH_HOST_KEY_PATH"`
-	HostKeyContent string `env:"SSH_HOST_KEY"`
+	Addr           string `env:"ADDR"`
+	HostKeyPath    string `env:"HOST_KEY_PATH"`
+	HostKeyContent string `env:"HOST_KEY"`
 }
 
 func (config GithubAppConfig) PrivateKey() ([]byte, error) {
