@@ -2,7 +2,6 @@ package runnel
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"io"
 	"net"
@@ -33,7 +32,7 @@ const (
 )
 
 type ForwardHandler struct {
-	DB *sql.DB
+	DB models.DB
 
 	processCtx context.Context
 
@@ -41,7 +40,7 @@ type ForwardHandler struct {
 	sync.Mutex
 }
 
-func NewForwardHandler(ctx context.Context, db *sql.DB) *ForwardHandler {
+func NewForwardHandler(ctx context.Context, db models.DB) *ForwardHandler {
 	return &ForwardHandler{
 		DB: db,
 

@@ -12,7 +12,7 @@ import (
 	"github.com/vito/bass/pkg/bass"
 )
 
-func CreateThunkRun(ctx context.Context, db *sql.DB, user *github.User, thunk bass.Thunk) (*Run, error) {
+func CreateThunkRun(ctx context.Context, db DB, user *github.User, thunk bass.Thunk) (*Run, error) {
 	sha2, err := thunk.SHA256()
 	if err != nil {
 		return nil, err

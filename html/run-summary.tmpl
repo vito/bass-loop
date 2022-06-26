@@ -1,1 +1,0 @@
-<span class="run-summary"><strong>run</strong> <a class="name" href="/runs/{{.Run.ID}}">{{.Run.ID}}</a> by <a class="username" href="https://github.com/{{.User.Login}}">@{{.User.Login}}</a> {{if .Run.EndTime}}{{if .Run.Succeeded.Int64}}<span class="succeeded">succeeded</span>{{else}}<span class="failed">failed</span>{{end}} in {{.Duration}}{{else}}unfinished{{end}}</span>

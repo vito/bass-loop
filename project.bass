@@ -2,18 +2,38 @@
 (def *memos* *dir*/bass.lock)
 
 (use (.git (linux/alpine/git))
-     (git:github/vito/bass-loop/ref/main/bass/github.bass))
+     (git:github/vito/bass-loop/ref/main/bass/github.bass)
+     (git:github/vito/tabs/ref/main/nix.bass))
 
 ; a set of validations to run against a checkout of the repo
 (defn checks [src]
   {:build (build src)})
 
+; monolithic image containing dependencies for building and testing
+(defn deps [src]
+  {:file (nix:result
+           (-> ($ nix build ".#depsOci")
+               (with-mount src/nix/ ./nix/)
+               (with-mount src/flake.nix ./flake.nix)
+               (with-mount src/flake.lock ./flake.lock)
+               (with-mount src/default.nix ./default.nix))
+           ./image.tar)
+   :platform {:os "linux"}
+   :tag "latest"})
+
 ; a basic test: does it build?
 (defn build [src]
-  (from (linux/golang)
-    (cd src
-      ($ go build ./cmd/bass-loop))))
+  (from (deps src)
+    (cd src/
+      (-> ($ go install -buildvcs=false "github.com/livebud/bud")
+          (with-env {:GOBIN "/share/go/bin"}))
+      ($ yarn)
+      ($ bud build))))
 
 ; called by bass-loop
 (defn github-hook [event client]
   (github:check-hook event client git checks))
+
+(defn main []
+  (for [{:src src} *stdin*]
+    (run (build src))))

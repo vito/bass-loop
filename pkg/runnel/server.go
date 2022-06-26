@@ -2,28 +2,65 @@ package runnel
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/gliderlabs/ssh"
 	"github.com/google/go-github/v43/github"
 	flag "github.com/spf13/pflag"
+	"github.com/vito/bass-loop/pkg/blobs"
+	"github.com/vito/bass-loop/pkg/cfg"
+	"github.com/vito/bass-loop/pkg/logs"
 	"github.com/vito/bass-loop/pkg/models"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/zapctx"
 	"go.uber.org/zap"
-	"gocloud.dev/blob"
 	gossh "golang.org/x/crypto/ssh"
+	"golang.org/x/sync/errgroup"
 )
 
 type Server struct {
-	Addr           string `env:"SSH_ADDR"`
-	HostKeyPath    string `env:"SSH_HOST_KEY_PATH"`
-	HostKeyContent string `env:"SSH_HOST_KEY"`
+	Addr           string
+	HostKeyPath    string
+	HostKeyContent string
 
-	DB    *sql.DB
-	Blobs *blob.Bucket
+	DB    models.DB
+	Blobs *blobs.Bucket
+
+	ctx context.Context
+	wg  *errgroup.Group
+}
+
+const DefaultAddr = "0.0.0.0:6455"
+
+func Listen(config *cfg.Config, logger *logs.Logger, db *models.Conn, bucket *blobs.Bucket) *Server {
+	addr := config.SSH.Addr
+	if addr == "" {
+		addr = DefaultAddr
+	}
+
+	srv := &Server{
+		Addr:           addr,
+		HostKeyPath:    config.SSH.HostKeyPath,
+		HostKeyContent: config.SSH.HostKeyContent,
+
+		DB:    db,
+		Blobs: bucket,
+
+		ctx: zapctx.ToContext(context.Background(), logger),
+		wg:  new(errgroup.Group),
+	}
+
+	srv.wg.Go(srv.ListenAndServe)
+
+	go func() {
+		err := srv.wg.Wait()
+		if err != nil {
+			logger.Error("runnel errored", zap.Error(err))
+		}
+	}()
+
+	return srv
 }
 
 const (
@@ -36,7 +73,9 @@ type Command struct {
 	Callback func(ssh.Session, *flag.FlagSet, []string)
 }
 
-func (server *Server) ListenAndServe(ctx context.Context) error {
+func (server *Server) ListenAndServe() error {
+	ctx := server.ctx
+
 	logger := zapctx.FromContext(ctx)
 
 	commands := []Command{
@@ -113,11 +152,11 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 		sshServer.SetOption(opt)
 	}
 
-	if _, err := server.DB.Exec(`DELETE FROM runtimes`); err != nil {
+	if _, err := server.DB.ExecContext(context.Background(), `DELETE FROM runtimes`); err != nil {
 		return fmt.Errorf("clean up runtimes: %w", err)
 	}
 
-	if _, err := server.DB.Exec(`DELETE FROM services`); err != nil {
+	if _, err := server.DB.ExecContext(context.Background(), `DELETE FROM services`); err != nil {
 		return fmt.Errorf("clean up services: %w", err)
 	}
 
@@ -126,12 +165,16 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 		zap.String("addr", server.Addr))
 
 	go func() {
-		<-ctx.Done()
+		<-server.ctx.Done()
 		logger.Warn("interrupted; stopping gracefully")
 		sshServer.Shutdown(context.Background())
 	}()
 
 	return sshServer.ListenAndServe()
+}
+
+func (server *Server) Wait() error {
+	return server.wg.Wait()
 }
 
 func (server *Server) HandleForwardCommand(s ssh.Session, flags *flag.FlagSet, args []string) {

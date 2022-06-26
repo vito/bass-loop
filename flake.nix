@@ -22,6 +22,12 @@
       rec {
         packages = {
           default = pkgs.callPackage ./default.nix { };
+          # for passing to 'docker load'
+          deps = pkgs.callPackage ./nix/depsImage.nix { };
+          # for using as thunk images
+          depsOci = pkgs.callPackage ./nix/convertToOci.nix {
+            image = pkgs.callPackage ./nix/depsImage.nix { };
+          };
         };
 
         defaultApp = {
@@ -31,17 +37,9 @@
 
         devShells = {
           default = pkgs.mkShell {
-            nativeBuildInputs = with pkgs; [
-              # for running scripts
-              bashInteractive
-              # start-stop-daemon, for hack/buildkit/start/stop
-              dpkg
-              # go building + testing
-              go_1_18
-              gcc
-              # go dev
+            nativeBuildInputs = pkgs.callPackage ./nix/deps.nix { } ++ (with pkgs; [
               gopls
-            ];
+            ]);
           };
         };
       });
