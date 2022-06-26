@@ -10,6 +10,12 @@ import (
 type Transport = ghinstallation.AppsTransport
 
 func New(config *cfg.Config) (*Transport, error) {
+	if config.GitHubApp.ID == 0 {
+		// this optional so I can just run the app with bud run (which doesn't pass
+		// env vars - see https://github.com/livebud/bud/issues/151
+		return nil, nil
+	}
+
 	keyContent, err := config.GitHubApp.PrivateKey()
 	if err != nil {
 		return nil, err
