@@ -22,15 +22,15 @@ go install github.com/vito/bass-loop/cmd/bass-loop@latest
 
 ## the plan
 
-* [x] A GitHub app for running Bass GitHub event handlers in-repo (kinda like GitHub actions).
-    * [x] A shorthand for the common case of running checks.
-* [x] A web UI for viewing thunk output (so a 'details URL' can be set on GitHub checks).
-    * [ ] A thunk that contains secrets should default to private visibility.
-* [x] A SSH server so that users can bring their own workers (i.e. their local machine).
-    * [ ] A method for passing secrets to thunks via the runner so sensitive values never even leave the machine.
-    * [x] A method for PR authors to satisfy PR checks using their own workers, without the repo maintainer having to run them.
-* [ ] Scalable - everyone brings-their-own-worker, so only the Loop has to be scaled out.
-* [ ] Make it a little more friendly. Right now the frontpage is pretty cryptic; it's purely driven by the 'navigating from GitHub' use case at the moment, but a dash of metadata could help tie things back in the other direction.
+- [x] A GitHub app for running Bass GitHub event handlers in-repo (kinda like GitHub actions).
+  - [x] A shorthand for the common case of running checks.
+- [x] A web UI for viewing thunk output (so a 'details URL' can be set on GitHub checks).
+  - [ ] A thunk that contains secrets should default to private visibility.
+- [x] A SSH server so that users can bring their own workers (i.e. their local machine).
+  - [ ] A method for passing secrets to thunks via the runner so sensitive values never even leave the machine.
+  - [x] A method for PR authors to satisfy PR checks using their own workers, without the repo maintainer having to run them.
+- [ ] Scalable - everyone brings-their-own-worker, so only the Loop has to be scaled out.
+- [ ] Make it a little more friendly. Right now the frontpage is pretty cryptic; it's purely driven by the 'navigating from GitHub' use case at the moment, but a dash of metadata could help tie things back in the other direction.
 
 ## GitHub App configuration
 
@@ -48,6 +48,8 @@ Set the **Homepage URL** to the external URL of your app e.g.
 [ngrok](https://ngrok.com/) to serve your local Loop to the public internet:
 
 use an address like `https://abcd-123-45-67-89.ngrok.io`.
+
+Skip the "Callback URL" section.
 
 Skip the "Identifying and authorizing users" section - it's unused.
 
@@ -90,10 +92,10 @@ No access required.
 As stated before this is up to you, but here are the events enabled for
 [loop.bass-lang.org](https://loop.bass-lang.org) at the time of writing:
 
-* [x] Meta
-* [x] Pull request
-* [x] Push
-* [x] Release
+- [x] Meta
+- [x] Pull request
+- [x] Push
+- [x] Release
 
 ### Create the app
 
@@ -139,7 +141,8 @@ the `op` CLI like so:
 
 ```sh
 cat > creds.env <<EOF
-GITHUB_WEBHOOK_SECRET = op://Bass/webhook-secret/password
+GITHUB_APP_ID = 12345
+GITHUB_APP_WEBHOOK_SECRET = op://Bass/webhook-secret/password
 GITHUB_APP_PRIVATE_KEY = op://Bass/github-app-private-key/private-key
 EOF
 
