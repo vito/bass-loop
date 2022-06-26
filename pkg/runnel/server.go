@@ -53,6 +53,13 @@ func Listen(config *cfg.Config, logger *logs.Logger, db *models.Conn, bucket *bl
 
 	srv.wg.Go(srv.ListenAndServe)
 
+	go func() {
+		err := srv.wg.Wait()
+		if err != nil {
+			logger.Error("runnel errored", zap.Error(err))
+		}
+	}()
+
 	return srv
 }
 
