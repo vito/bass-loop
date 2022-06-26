@@ -59,7 +59,7 @@ getting started.
 
 Enable webhooks.
 
-Set **Webhook URL** to e.g. `https://example.com/api/github/hook`
+Set **Webhook URL** to e.g. `https://example.com/integrations/github/events`
 
 Set a **Webhook secret** for a real public installation so people can't spoof
 webhook payloads.
