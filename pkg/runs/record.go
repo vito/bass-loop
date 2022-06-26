@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"text/template"
+	"html/template"
 	"time"
 
 	"github.com/aoldershaw/ansi"
