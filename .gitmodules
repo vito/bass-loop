@@ -1,3 +1,0 @@
-[submodule "pkg/bud"]
-	path = pkg/bud
-	url = https://github.com/vito/bud

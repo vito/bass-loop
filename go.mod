@@ -129,5 +129,4 @@ require (
 // keep in sync with upstream buildkit
 replace github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220224222438-c78f6963a1c0+incompatible
 
-// point to fork
-replace github.com/livebud/bud => ./pkg/bud
+replace github.com/livebud/bud => github.com/vito/bud v0.1.8-0.20220619173731-311946d80059
