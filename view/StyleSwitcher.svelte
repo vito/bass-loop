@@ -6,6 +6,8 @@
 <svelte:head>
   {@html `<style id="default-theme">:root {${style.vars.join(";")}}</style>`}
 
+  <link rel="shortcut icon" type="image/x-icon" href="/ico/base16-{style.scheme}.svg" id="favicon" />
+
   <script type="module">
     // do this in <head> so the style gets set ASAP (preventing flicker)
     import { setStyleIfSet } from "/js/switcher.js";
