@@ -1,10 +1,12 @@
 <script>
+  import Time from "svelte-time";
+
   export let run = {};
 </script>
 
 <ul class="summary">
   <li>
-    <strong>run</strong> <a class="name" href="/runs/{run.id}">{run.id}</a>
+    <strong>run</strong> <a class="name" href="/runs/{run.id}">{run.id.substring(0,8)}</a> started <Time relative timestamp={run.started_at} />
     by <a class="username" href="https://github.com/{run.user.login}">@{run.user.login}</a>
     {#if run.completed_at}
       {#if run.succeeded}

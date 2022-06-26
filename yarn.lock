@@ -7,6 +7,11 @@ color-contrast-checker@^2.1.0:
   resolved "https://registry.yarnpkg.com/color-contrast-checker/-/color-contrast-checker-2.1.0.tgz#05bda8ee59bd7901324ca0443497cf169f1b3296"
   integrity sha512-6Y0aIEej3pwZTVlicIqVzhO6T4izDWouaIXnYoDdTuFFAMQ9nnN0dgHNP9J94jRnH6asjPq1/wzUKxwoNbWtRQ==
 
+dayjs@^1.11.3:
+  version "1.11.3"
+  resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.11.3.tgz#4754eb694a624057b9ad2224b67b15d552589258"
+  integrity sha512-xxwlswWOlGhzgQ4TKzASQkUhqERI3egRNqgV4ScR8wlANA/A9tZ7miXa44vTTKEq5l7vWoL5G57bG3zA+Kow0A==
+
 "js-tokens@^3.0.0 || ^4.0.0":
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
@@ -49,6 +54,13 @@ scheduler@^0.21.0:
   integrity sha512-1r87x5fz9MXqswA2ERLo0EbOAU74DpIUO090gIasYTqlVoJeMcl+Z1Rg7WHz+qtPujhS/hGIt9kxZOYBV3faRQ==
   dependencies:
     loose-envify "^1.1.0"
+
+svelte-time@^0.7.1:
+  version "0.7.1"
+  resolved "https://registry.yarnpkg.com/svelte-time/-/svelte-time-0.7.1.tgz#5608f6e12cb9bd61f739026ce006642d649d66be"
+  integrity sha512-E7IL/85j7oj5fhxvmlau616TUbFfa6Vyy1PFTL3Y8SJGY6NXJaUj7DOYJrXVdoS3Rm9RVST0M6qWd6vqrYgM+w==
+  dependencies:
+    dayjs "^1.11.3"
 
 svelte@3.47.0:
   version "3.47.0"
