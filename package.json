@@ -7,6 +7,7 @@
   "license": "MIT",
   "private": false,
   "dependencies": {
+    "@primer/octicons": "^17.3.0",
     "color-contrast-checker": "^2.1.0",
     "livebud": "^0.1.7",
     "svelte": "^3.48.0",

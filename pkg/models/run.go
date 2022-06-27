@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"github.com/vito/bass/pkg/bass"
 )
 
-func CreateThunkRun(ctx context.Context, db DB, user *github.User, thunk bass.Thunk) (*Run, error) {
+func CreateThunkRun(ctx context.Context, db DB, user *github.User, thunk bass.Thunk, meta map[string]any) (*Run, error) {
 	sha2, err := thunk.SHA256()
 	if err != nil {
 		return nil, err
@@ -61,6 +62,18 @@ func CreateThunkRun(ctx context.Context, db DB, user *github.User, thunk bass.Th
 		UserID:      user.GetNodeID(),
 		ThunkDigest: sha2,
 		StartTime:   startTime,
+	}
+
+	if meta != nil {
+		metaJSON, err := json.Marshal(meta)
+		if err != nil {
+			return nil, err
+		}
+
+		thunkRun.Meta = sql.NullString{
+			String: string(metaJSON),
+			Valid:  true,
+		}
 	}
 
 	err = thunkRun.Save(ctx, db)

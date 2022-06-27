@@ -17,19 +17,14 @@
 
 <style>
   .thunk-runs {
-    color: var(--base04);
-  }
-
-  .thunk-runs {
     list-style-type: none;
     margin: 0;
     padding: 0;
   }
 
   .thunk-runs li {
-    margin-bottom: 10px;
-
     display: flex;
     flex-direction: column;
+    margin-bottom: 22px;
   }
 </style>

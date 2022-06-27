@@ -26,6 +26,10 @@
   --subtle-gradient:  linear-gradient(var(--light-angle), var(--background-color) 0, var(--base01) 100%);
   --button-gradient:  linear-gradient(var(--light-angle), var(--background-color) 0, var(--base02) 100%);
   --button-hover-gradient: linear-gradient(var(--light-angle), var(--background-color) 0, var(--base03) 100%);
+
+  --succeeded-color: var(--base0B);
+  --failed-color: var(--base09);
+  --running-color: var(--base0A);
 }
 
 ::selection {

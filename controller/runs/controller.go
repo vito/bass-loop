@@ -16,6 +16,39 @@ type Controller struct {
 	Blobs *blobs.Bucket
 }
 
+type IndexProps struct {
+	Runs []*present.Run `json:"runs"`
+}
+
+// Show run
+// GET /runs
+func (c *Controller) Index(ctx context.Context, path, value string) (props *IndexProps, err error) {
+	runs, err := models.FindRunResultsByPathValue(ctx, c.Conn, path, value)
+	if err != nil {
+		return nil, fmt.Errorf("get run: %w", err)
+	}
+
+	index := &IndexProps{
+		Runs: []*present.Run{},
+	}
+
+	for _, r := range runs {
+		model, err := models.RunByID(ctx, c.Conn, r.ID)
+		if err != nil {
+			return nil, fmt.Errorf("get run %s: %w", r.ID, err)
+		}
+
+		run, err := present.NewRun(ctx, c.Conn, model)
+		if err != nil {
+			return nil, fmt.Errorf("present run: %w", err)
+		}
+
+		index.Runs = append(index.Runs, run)
+	}
+
+	return index, nil
+}
+
 type ShowProps struct {
 	Run      *present.Run      `json:"run"`
 	Vertexes []*present.Vertex `json:"vertexes"`

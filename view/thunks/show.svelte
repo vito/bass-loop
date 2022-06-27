@@ -22,6 +22,8 @@
   <Header />
   <Title text="Runs" />
   <Runs runs={runs} />
+  <Title text="JSON" />
+  {@html props.thunk.json_html}
   <Footer />
 </main>
 

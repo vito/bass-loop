@@ -6,13 +6,13 @@ import (
 	"context"
 )
 
-// RunListing represents a row from 'run_listing'.
-type RunListing struct {
+// IndexRunsResult represents a row from 'index_runs_result'.
+type IndexRunsResult struct {
 	ID string `json:"id"` // id
 }
 
-// GetRunListings runs a custom query, returning results as RunListing.
-func GetRunListings(ctx context.Context, db DB) ([]*RunListing, error) {
+// GetIndexRunsResults runs a custom query, returning results as IndexRunsResult.
+func GetIndexRunsResults(ctx context.Context, db DB) ([]*IndexRunsResult, error) {
 	// query
 	const sqlstr = `SELECT id FROM runs ORDER BY start_time DESC LIMIT 50`
 	// run
@@ -23,14 +23,14 @@ func GetRunListings(ctx context.Context, db DB) ([]*RunListing, error) {
 	}
 	defer rows.Close()
 	// load results
-	var res []*RunListing
+	var res []*IndexRunsResult
 	for rows.Next() {
-		var rl RunListing
+		var irr IndexRunsResult
 		// scan
-		if err := rows.Scan(&rl.ID); err != nil {
+		if err := rows.Scan(&irr.ID); err != nil {
 			return nil, logerror(err)
 		}
-		res = append(res, &rl)
+		res = append(res, &irr)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, logerror(err)

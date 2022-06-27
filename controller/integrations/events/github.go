@@ -49,7 +49,13 @@ func (c *Controller) handleGitHub(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type GitHubEvent struct {
+type GitHubEventPayload struct {
+	// set on many events
+	Action *string `json:"action,omitempty"`
+
+	// set on push events
+	After *string `json:"after,omitempty"`
+
 	// set on check_suite events
 	CheckSuite *github.CheckSuite `json:"check_suite,omitempty"`
 
@@ -65,6 +71,82 @@ type GitHubEvent struct {
 	Installation *github.Installation `json:"installation,omitempty"`
 }
 
+func (event GitHubEventPayload) Meta() models.Meta {
+	meta := models.Meta{
+		"sender": models.Meta{
+			"login":  event.Sender.GetLogin(),
+			"action": event.Action,
+		},
+	}
+
+	if event.Repo != nil {
+		meta["repo"] = models.Meta{
+			"name":      event.Repo.GetName(),
+			"full_name": event.Repo.GetFullName(),
+			"url":       event.Repo.GetHTMLURL(),
+		}
+
+		sha := event.SHA()
+		if sha != "" {
+			meta["commit"] = models.Meta{
+				"sha": sha,
+				"url": event.Repo.GetHTMLURL() + "/commit/" + sha,
+			}
+		}
+
+		if event.CheckRun != nil {
+			branch := event.CheckRun.GetCheckSuite().GetHeadBranch()
+			meta["branch"] = models.Meta{
+				"name": branch,
+				"url":  event.Repo.GetHTMLURL() + "/tree/" + branch,
+			}
+		}
+
+		if event.CheckSuite != nil {
+			branch := event.CheckSuite.GetHeadBranch()
+			meta["branch"] = models.Meta{
+				"name": branch,
+				"url":  event.Repo.GetHTMLURL() + "/tree/" + branch,
+			}
+		}
+
+		if event.PullRequest != nil {
+			meta["pull_request"] = models.Meta{
+				"number": event.PullRequest.GetNumber(),
+				"url":    event.PullRequest.GetHTMLURL(),
+			}
+
+			branch := event.PullRequest.GetHead().GetRef()
+			meta["branch"] = models.Meta{
+				"name": branch,
+				"url":  event.Repo.GetHTMLURL() + "/tree/" + branch,
+			}
+		}
+	}
+
+	return meta
+}
+
+func (event *GitHubEventPayload) SHA() string {
+	if event.CheckSuite != nil {
+		return event.CheckSuite.GetHeadSHA()
+	}
+
+	if event.CheckRun != nil {
+		return event.CheckRun.GetHeadSHA()
+	}
+
+	if event.PullRequest != nil {
+		return event.PullRequest.GetHead().GetSHA()
+	}
+
+	if event.After != nil {
+		return *event.After
+	}
+
+	return ""
+}
+
 // RefToLoad determines the ref to use for dispatching the event.
 //
 // For check_suite events, this is the check_suite.head_sha.
@@ -74,19 +156,12 @@ type GitHubEvent struct {
 // For pull_request events, this is the pull_request.head.sha.
 //
 // For every other event, this is the repo's default branch's current sha.
-func (event *GitHubEvent) RefToLoad(ctx context.Context, ghClient *github.Client) (string, error) {
+func (event *GitHubEventPayload) RefToLoad(ctx context.Context, ghClient *github.Client) (string, error) {
 	repo := event.Repo
 
-	if event.CheckSuite != nil {
-		return event.CheckSuite.GetHeadSHA(), nil
-	}
-
-	if event.CheckRun != nil {
-		return event.CheckRun.GetHeadSHA(), nil
-	}
-
-	if event.PullRequest != nil {
-		return event.PullRequest.GetHead().GetSHA(), nil
+	sha := event.SHA()
+	if sha != "" {
+		return sha, nil
 	}
 
 	branch, _, err := ghClient.Repositories.GetBranch(ctx, repo.GetOwner().GetLogin(), repo.GetName(), repo.GetDefaultBranch(), true)
@@ -111,7 +186,7 @@ func (c *Controller) handleGitHubEvent(ctx context.Context, eventName, deliveryI
 		return fmt.Errorf("payload->scope: %w", err)
 	}
 
-	var event GitHubEvent
+	var event GitHubEventPayload
 	err = json.Unmarshal(payload, &event)
 	if err != nil {
 		return fmt.Errorf("unmarshal check suite: %w", err)
@@ -155,13 +230,13 @@ func (c *Controller) handleGitHubEvent(ctx context.Context, eventName, deliveryI
 	return nil
 }
 
-func (c *Controller) dispatch(ctx context.Context, event GitHubEvent, eventName, deliveryID string, payloadScope *bass.Scope) error {
+func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, eventName, deliveryID string, payloadScope *bass.Scope) error {
 	// each concurrent Bass must have its own trace
 	ctx = bass.WithTrace(context.Background(), &bass.Trace{})
 
-	instID := event.Installation.GetID()
-	sender := event.Sender
-	repo := event.Repo
+	instID := payload.Installation.GetID()
+	sender := payload.Sender
+	repo := payload.Repo
 
 	// load the user's forwarded runtime pool
 	ctx, pool, err := c.withUserPool(ctx, sender)
@@ -174,7 +249,7 @@ func (c *Controller) dispatch(ctx context.Context, event GitHubEvent, eventName,
 		Transport: ghinstallation.NewFromAppsTransport(c.Transport, instID),
 	})
 
-	ref, err := event.RefToLoad(ctx, ghClient)
+	ref, err := payload.RefToLoad(ctx, ghClient)
 	if err != nil {
 		return fmt.Errorf("get ref to load: %w", err)
 	}
@@ -185,7 +260,15 @@ func (c *Controller) dispatch(ctx context.Context, event GitHubEvent, eventName,
 		},
 	}
 
-	run, err := models.CreateThunkRun(ctx, c.DB, sender, hookThunk)
+	payloadMeta := payload.Meta()
+
+	run, err := models.CreateThunkRun(ctx, c.DB, sender, hookThunk, models.Meta{
+		"github": payloadMeta,
+		"event": models.Meta{
+			"name":     eventName,
+			"delivery": deliveryID,
+		},
+	})
 	if err != nil {
 		return fmt.Errorf("create hook thunk run: %w", err)
 	}
@@ -212,6 +295,7 @@ func (c *Controller) dispatch(ctx context.Context, event GitHubEvent, eventName,
 			Blobs:       c.Blobs,
 			Sender:      sender,
 			Repo:        repo,
+			Meta:        payloadMeta,
 		}).Scope(),
 	))
 	if err != nil {

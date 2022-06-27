@@ -9,14 +9,6 @@
 </div>
 
 <style>
-  a.name {
-    font-family: var(--monospace-font);
-    color: var(--base05);
-    font-weight: bold;
-    word-break: break-all;
-    text-decoration: none;
-  }
-
   a:hover {
     text-decoration: underline;
   }

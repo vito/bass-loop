@@ -2,6 +2,13 @@
 # yarn lockfile v1
 
 
+"@primer/octicons@^17.3.0":
+  version "17.3.0"
+  resolved "https://registry.yarnpkg.com/@primer/octicons/-/octicons-17.3.0.tgz#52f86d57ffacb04d1e3d792710a14181c7853ef4"
+  integrity sha512-4zPwwloYWdR6RznMafV7Fsw3n2CeDPp/+qEIQbaX/tBbPY1KmU0OAXmhRfhD5AzgB5kdV1aQ7KnQr1GeQXl9Dg==
+  dependencies:
+    object-assign "^4.1.1"
+
 color-contrast-checker@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/color-contrast-checker/-/color-contrast-checker-2.1.0.tgz#05bda8ee59bd7901324ca0443497cf169f1b3296"
@@ -32,6 +39,11 @@ loose-envify@^1.1.0:
   integrity sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==
   dependencies:
     js-tokens "^3.0.0 || ^4.0.0"
+
+object-assign@^4.1.1:
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/object-assign/-/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
+  integrity sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==
 
 react-dom@18.0.0:
   version "18.0.0"

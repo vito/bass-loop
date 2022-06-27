@@ -36,7 +36,7 @@ func (c *Controller) Index(ctx context.Context) (*Home, error) {
 		logger.Debug("served index", zap.Duration("took", time.Since(start)))
 	}()
 
-	runListings, err := models.GetRunListings(ctx, c.DB)
+	runs, err := models.GetIndexRunsResults(ctx, c.DB)
 	if err != nil {
 		return nil, fmt.Errorf("list runs: %w", err)
 	}
@@ -45,7 +45,7 @@ func (c *Controller) Index(ctx context.Context) (*Home, error) {
 		Runs: []*present.Run{},
 	}
 
-	for _, r := range runListings {
+	for _, r := range runs {
 		model, err := models.RunByID(ctx, c.DB, r.ID)
 		if err != nil {
 			return nil, fmt.Errorf("get run %s: %w", r.ID, err)

@@ -25,6 +25,7 @@ type Client struct {
 	GH          *github.Client
 	Sender      *github.User
 	Repo        *github.Repository
+	Meta        models.Meta
 }
 
 func (client *Client) Scope() *bass.Scope {
@@ -36,7 +37,12 @@ func (client *Client) Scope() *bass.Scope {
 }
 
 func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkName, sha string) (bass.Combiner, error) {
-	run, err := models.CreateThunkRun(ctx, client.DB, client.Sender, thunk)
+	run, err := models.CreateThunkRun(ctx, client.DB, client.Sender, thunk, models.Meta{
+		"github": client.Meta,
+		"check": models.Meta{
+			"name": checkName,
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("create thunk run: %w", err)
 	}

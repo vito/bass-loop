@@ -2,6 +2,7 @@ package present
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -18,6 +19,8 @@ type Run struct {
 
 	User  *User  `json:"user"`
 	Thunk *Thunk `json:"thunk"`
+
+	Meta models.Meta `json:"meta,omitempty"`
 }
 
 func NewRun(ctx context.Context, db models.DB, model *models.Run) (*Run, error) {
@@ -44,6 +47,13 @@ func NewRun(ctx context.Context, db models.DB, model *models.Run) (*Run, error) 
 
 		User:  NewUser(userModel),
 		Thunk: thunk,
+	}
+
+	if model.Meta.Valid {
+		err := json.Unmarshal([]byte(model.Meta.String), &run.Meta)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal meta: %w", err)
+		}
 	}
 
 	if model.EndTime != nil {
