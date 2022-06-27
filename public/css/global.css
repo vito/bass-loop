@@ -28,7 +28,7 @@
   --button-hover-gradient: linear-gradient(var(--light-angle), var(--background-color) 0, var(--base03) 100%);
 
   --succeeded-color: var(--base0B);
-  --failed-color: var(--base09);
+  --failed-color: var(--base08);
   --running-color: var(--base0A);
 }
 
