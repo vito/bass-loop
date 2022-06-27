@@ -77,7 +77,7 @@ a:hover {
   color: var(--foreground-color);
 }
 
-code {
+pre, code {
   font-family: var(--monospace-font);
 }
 

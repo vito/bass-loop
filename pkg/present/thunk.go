@@ -8,9 +8,8 @@ import (
 )
 
 type Thunk struct {
-	Digest   string `json:"digest"`
-	Avatar   string `json:"avatar"`
-	JSONHTML string `json:"json_html"`
+	Digest string `json:"digest"`
+	Avatar string `json:"avatar"`
 }
 
 func NewThunk(ctx context.Context, db models.DB, model *models.Thunk) (*Thunk, error) {

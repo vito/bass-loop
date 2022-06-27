@@ -23,10 +23,18 @@
   <Title text="Runs" />
   <Runs runs={runs} />
   <Title text="JSON" />
-  {@html props.thunk.json_html}
+  <div class="highlight wrap" contenteditable="true">
+    {@html props.json_html}
+  </div>
   <Footer />
 </main>
 
 <style>
   @import "/css/global.css";
+  @import "/css/highlight.css";
+
+  .highlight.wrap :global(pre) {
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
 </style>
