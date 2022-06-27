@@ -13,17 +13,21 @@
   <li>
     <span class="meta" class:running={!run.completed_at} class:succeeded={run.succeeded} class:failed={!run.succeeded}>
       {#if run.completed_at}
+      {#if event}
+      <Octicon icon="webhook" />
+      {:else}
       <Octicon icon={run.succeeded ? "check-circle-fill" : "x-circle-fill"} />
+      {/if}
       {:else}
       <Octicon icon="dot" />
       {/if}
-    {#if check}
+      {#if check}
       <a class="run-id" href="/runs/{run.id}"><strong>{check.name}</strong></a>
-    {:else if event}
+      {:else if event}
       <a class="run-id" href="/runs/{run.id}"><strong>{event.name}</strong></a>
-    {:else}
+      {:else}
       <a class="run-id" href="/runs/{run.id}"><strong>{run.id}</strong></a>
-    {/if}
+      {/if}
     </span>
 
     <span class="meta">
