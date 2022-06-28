@@ -10,11 +10,14 @@ import (
 
 	"github.com/google/go-github/v43/github"
 	"github.com/mattn/go-colorable"
+	"github.com/opencontainers/go-digest"
 	"github.com/vito/bass-loop/pkg/blobs"
 	"github.com/vito/bass-loop/pkg/models"
 	"github.com/vito/bass-loop/pkg/runs"
+	"github.com/vito/bass/ioctx"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
+	"github.com/vito/bass/zapctx"
 	"github.com/vito/progrock"
 )
 
@@ -84,7 +87,18 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 	}
 
 	progress := cli.NewProgress()
-	thunkCtx := progrock.RecorderToContext(ctx, progrock.NewRecorder(progress))
+	recorder := progrock.NewRecorder(progress)
+	thunkCtx := progrock.RecorderToContext(ctx, recorder)
+
+	metaVtx := recorder.Vertex(digest.Digest("check:"+checkName), "[check] "+checkName)
+	stderr := metaVtx.Stderr()
+	thunkCtx = ioctx.StderrToContext(thunkCtx, stderr)
+	thunkCtx = zapctx.ToContext(thunkCtx, bass.LoggerTo(stderr))
+
+	report := func(err error) error {
+		metaVtx.Done(err)
+		return err
+	}
 
 	return thunk.Start(thunkCtx, bass.Func("handler", "[ok? err]", func(ctx context.Context, merr bass.Value) error {
 		var errv bass.Error
@@ -95,7 +109,7 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 		ok := errv.Err == nil
 
 		if err := runs.Record(ctx, client.DB, client.Blobs, run, progress, ok); err != nil {
-			return fmt.Errorf("failed to complete: %w", err)
+			return report(fmt.Errorf("failed to complete: %w", err))
 		}
 
 		outBuf := new(bytes.Buffer)
@@ -125,17 +139,17 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 			},
 		)
 		if err != nil {
-			return fmt.Errorf("update check run: %w", err)
+			return report(fmt.Errorf("update check run: %w", err))
 		}
 
 		if ok {
-			return nil
+			return report(nil)
 		}
 
 		// bubble up an error so it gets logged
 		//
 		// might make sense to remove this someday, but I would rather start with
 		// too much logging
-		return fmt.Errorf("check %s: %s failed: %w", checkName, thunk, errv.Err)
+		return report(fmt.Errorf("check %s: %s failed: %w", checkName, thunk, errv.Err))
 	}))
 }
