@@ -14,10 +14,10 @@ import (
 	"github.com/vito/bass-loop/pkg/blobs"
 	"github.com/vito/bass-loop/pkg/models"
 	"github.com/vito/bass-loop/pkg/runs"
-	"github.com/vito/bass/ioctx"
 	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/cli"
-	"github.com/vito/bass/zapctx"
+	"github.com/vito/bass/pkg/ioctx"
+	"github.com/vito/bass/pkg/zapctx"
 	"github.com/vito/progrock"
 )
 
