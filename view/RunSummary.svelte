@@ -11,7 +11,7 @@
 
 <ul class="summary">
   <li>
-    <span class="meta" class:running={!run.completed_at} class:succeeded={run.succeeded} class:failed={!run.succeeded}>
+    <span class="meta" class:running={!run.completed_at} class:succeeded={run.succeeded} class:failed={run.completed_at && !run.succeeded}>
       {#if run.completed_at}
       {#if event}
       <Octicon icon="webhook" />
