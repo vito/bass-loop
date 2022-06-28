@@ -100,7 +100,7 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 		return err
 	}
 
-	return thunk.Start(thunkCtx, bass.Func("handler", "[ok? err]", func(ctx context.Context, merr bass.Value) error {
+	return thunk.Start(thunkCtx, bass.Func("handler", "[err]", func(ctx context.Context, merr bass.Value) error {
 		var errv bass.Error
 		if err := merr.Decode(&errv); err == nil {
 			cli.WriteError(thunkCtx, errv.Err)
