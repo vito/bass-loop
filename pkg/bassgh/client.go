@@ -86,7 +86,14 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 	progress := cli.NewProgress()
 	thunkCtx := progrock.RecorderToContext(ctx, progrock.NewRecorder(progress))
 
-	return thunk.Start(thunkCtx, bass.Func("handler", "[ok?]", func(ctx context.Context, ok bool) error {
+	return thunk.Start(thunkCtx, bass.Func("handler", "[ok? err]", func(ctx context.Context, merr bass.Value) error {
+		var errv bass.Error
+		if err := merr.Decode(&errv); err != nil {
+			cli.WriteError(thunkCtx, errv.Err)
+		}
+
+		ok := errv.Err == nil
+
 		if err := runs.Record(ctx, client.DB, client.Blobs, run, progress, ok); err != nil {
 			return fmt.Errorf("failed to complete: %w", err)
 		}
@@ -129,6 +136,6 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 		//
 		// might make sense to remove this someday, but I would rather start with
 		// too much logging
-		return fmt.Errorf("%s: check %s: %s failed", sha, checkName, thunk)
+		return fmt.Errorf("check %s: %s failed: %w", checkName, thunk, errv.Err)
 	}))
 }
