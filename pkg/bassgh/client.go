@@ -95,21 +95,18 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 	thunkCtx = ioctx.StderrToContext(thunkCtx, stderr)
 	thunkCtx = zapctx.ToContext(thunkCtx, bass.LoggerTo(stderr))
 
-	report := func(err error) error {
-		metaVtx.Done(err)
-		return err
-	}
-
 	return thunk.Start(thunkCtx, bass.Func("handler", "[err]", func(ctx context.Context, merr bass.Value) error {
 		var errv bass.Error
 		if err := merr.Decode(&errv); err == nil {
 			cli.WriteError(thunkCtx, errv.Err)
 		}
 
+		metaVtx.Done(errv.Err)
+
 		ok := errv.Err == nil
 
 		if err := runs.Record(ctx, client.DB, client.Blobs, run, progress, ok); err != nil {
-			return report(fmt.Errorf("failed to complete: %w", err))
+			return fmt.Errorf("failed to complete: %w", err)
 		}
 
 		outBuf := new(bytes.Buffer)
@@ -139,17 +136,17 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 			},
 		)
 		if err != nil {
-			return report(fmt.Errorf("update check run: %w", err))
+			return fmt.Errorf("update check run: %w", err)
 		}
 
 		if ok {
-			return report(nil)
+			return nil
 		}
 
 		// bubble up an error so it gets logged
 		//
 		// might make sense to remove this someday, but I would rather start with
 		// too much logging
-		return report(fmt.Errorf("check %s: %s failed: %w", checkName, thunk, errv.Err))
+		return fmt.Errorf("check %s: %s failed: %w", checkName, thunk, errv.Err)
 	}))
 }
