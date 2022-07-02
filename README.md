@@ -17,7 +17,9 @@ server.
 Using Go 1.18+:
 
 ```sh
-go install github.com/vito/bass-loop/cmd/bass-loop@latest
+git clone https://github.com/vito/bass-loop/cmd/bass-loop
+go install github.com/livebud/bud
+bud build
 ```
 
 ## the plan
@@ -127,17 +129,25 @@ users. Click "Generate a private key" to create and download one.
 ### Run `bass-loop` with GitHub app config
 
 Copy your app ID from the top of the settings page, put your private key
-somewhere within reach, and run:
+somewhere within reach, and set the following env vars:
 
 ```sh
-bass-loop \
-  --github-app-id 12345 \
-  --github-app-key app-private-key.pem \
-  --github-app-webhook-secret mysecret
+export GITHUB_APP_ID=12345 
+export GITHUB_APP_WEBHOOK_SECRET=mysecret
+export GITHUB_APP_PRIVATE_KEY_PATH=app-private-key.pem
 ```
 
-These parameters can also be set using env vars. I personally use 1Password and
-the `op` CLI like so:
+Then, build and run the Bud app:
+
+```sh
+bud build
+./bud/app
+```
+
+Any env vars that point to paths (i.e. vars ending in `_PATH`) can also be set
+to direct content by setting it as the var name without `_PATH`.
+
+I personally use 1Password and the `op` CLI like so:
 
 ```sh
 cat > creds.env <<EOF
@@ -148,5 +158,5 @@ EOF
 
 eval $(op signin)
 
-op run --no-masking --env-file ./creds.env bass-loop
+op run --no-masking --env-file ./creds.env ./bud/app
 ```
