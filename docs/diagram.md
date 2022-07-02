@@ -62,11 +62,6 @@ sequenceDiagram
         Project->>GitHub: update check run status
     end
     end
-    break runner disconnects
-        SSH->>-DB: clean up runtimes
-        %% Note over DB: DELETE FROM runtimes WHERE name = session_id
-        Runner-)SSH: reconnect with backoff
-    end
     Developer->>GitHub: user views checks
     Note over Developer: click check statuses on commit/PR
     Developer->>HTTP: user views build output
