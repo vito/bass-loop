@@ -102,6 +102,7 @@ require (
 	github.com/vito/is v0.0.5 // indirect
 	github.com/vito/vt100 v0.0.0-20220404031632-f6fec6525a40 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
+	go.kuoruan.net/v8go-polyfills v0.5.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.29.0 // indirect
 	go.opentelemetry.io/otel v1.4.1 // indirect
@@ -121,6 +122,7 @@ require (
 	google.golang.org/api v0.74.0 // indirect
 	google.golang.org/genproto v0.0.0-20220401170504-314d38edb7de // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
+	rogchap.com/v8go v0.7.0 // indirect
 )
 
 // keep in sync with upstream buildkit
