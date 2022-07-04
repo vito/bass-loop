@@ -1,4 +1,5 @@
 let curatedStyles = [
+  require("./base16/base16-catppuccin.js"),
   require("./base16/base16-chalk.js"),
   require("./base16/base16-classic-dark.js"),
   require("./base16/base16-darkmoss.js"),
@@ -27,7 +28,6 @@ let curatedStyles = [
   require("./base16/base16-snazzy.js"),
   require("./base16/base16-tender.js"),
   require("./base16/base16-tokyo-night-dark.js"),
-  require("./base16/base16-tokyo-night-terminal-dark.js"),
   require("./base16/base16-tomorrow-night.js"),
   require("./base16/base16-tomorrow-night-eighties.js"),
   require("./base16/base16-twilight.js"),
