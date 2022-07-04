@@ -31,7 +31,7 @@ type Client struct {
 	Meta        models.Meta
 }
 
-func (client *Client) Scope() *bass.Scope {
+func (client *Client) Module() *bass.Scope {
 	ghscope := bass.NewEmptyScope()
 	ghscope.Set("start-check",
 		bass.Func("start-check", "[thunk name sha]", client.StartCheck))

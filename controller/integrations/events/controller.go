@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/google/go-github/v43/github"
+	"github.com/vito/bass-loop/pkg/bassgh"
 	"github.com/vito/bass-loop/pkg/blobs"
 	"github.com/vito/bass-loop/pkg/cfg"
 	"github.com/vito/bass-loop/pkg/ghapp"
@@ -34,7 +35,7 @@ type Controller struct {
 }
 
 const DefaultExternalURL = "http://localhost:3000"
-const ProjectFile = "project.bass"
+const HookScript = "bass/github-hook"
 
 func Load(log *logs.Logger, config *cfg.Config, db *models.Conn, blobs *blobs.Bucket, transport *ghapp.Transport) *Controller {
 	e := config.ExternalURL
@@ -109,31 +110,17 @@ func (c *Controller) withUserPool(ctx context.Context, user *github.User) (conte
 	return bass.WithRuntimePool(ctx, pool), pool, nil
 }
 
-func callHook(ctx context.Context, hookThunk bass.Thunk, hookBinding bass.Symbol, args bass.List) error {
+func callHook(ctx context.Context, hookThunk bass.Thunk, client *bassgh.Client) error {
 	logger := zapctx.FromContext(ctx).With(
 		zap.Stringer("thunk", hookThunk),
-		zap.Stringer("binding", hookBinding),
 	)
 
 	// track thunk runs separately so we can log them later
 	ctx, runs := bass.TrackRuns(ctx)
 
-	module, err := bass.NewBass().Load(ctx, hookThunk)
+	err := bass.NewSession(newLoopScope(client)).Run(ctx, hookThunk)
 	if err != nil {
 		return fmt.Errorf("load project.bass: %w", err)
-	}
-
-	var comb bass.Combiner
-	if err := module.GetDecode(hookBinding, &comb); err != nil {
-		return fmt.Errorf("get %s: %w", hookBinding, err)
-	}
-
-	logger.Info("calling hook")
-
-	call := comb.Call(ctx, args, module, bass.Identity)
-
-	if _, err := bass.Trampoline(ctx, call); err != nil {
-		return fmt.Errorf("hook: %w", err)
 	}
 
 	logger.Info("hook called; waiting on runs")
@@ -146,4 +133,8 @@ func callHook(ctx context.Context, hookThunk bass.Thunk, hookBinding bass.Symbol
 	}
 
 	return err
+}
+
+func newLoopScope(client *bassgh.Client) *bass.Scope {
+	return bass.Bindings{"*loop*": client.Module()}.Scope(bass.Ground)
 }

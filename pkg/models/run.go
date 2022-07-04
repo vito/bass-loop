@@ -14,7 +14,7 @@ import (
 )
 
 func CreateThunkRun(ctx context.Context, db DB, user *github.User, thunk bass.Thunk, meta map[string]any) (*Run, error) {
-	sha2, err := thunk.SHA256()
+	hash, err := thunk.Hash()
 	if err != nil {
 		return nil, err
 	}
@@ -34,11 +34,11 @@ func CreateThunkRun(ctx context.Context, db DB, user *github.User, thunk bass.Th
 		return nil, err
 	}
 
-	dbThunk, err := ThunkByDigest(ctx, db, sha2)
+	dbThunk, err := ThunkByDigest(ctx, db, hash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dbThunk = &Thunk{
-				Digest: sha2,
+				Digest: hash,
 				JSON:   payload,
 			}
 
@@ -60,7 +60,7 @@ func CreateThunkRun(ctx context.Context, db DB, user *github.User, thunk bass.Th
 	thunkRun := Run{
 		ID:          id.String(),
 		UserID:      user.GetNodeID(),
-		ThunkDigest: sha2,
+		ThunkDigest: hash,
 		StartTime:   startTime,
 	}
 
