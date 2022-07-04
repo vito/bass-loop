@@ -1,8 +1,10 @@
+#!/usr/bin/env bass
+
 ; memoize dependency resolution
 (def *memos* *dir*/bass.lock)
 
 (use (.git (linux/alpine/git))
-     (git:github/vito/bass-loop/ref/main/bass/github.bass)
+     (*dir*/github.bass)
      (git:github/vito/tabs/ref/main/nix.bass))
 
 ; a set of validations to run against a checkout of the repo
@@ -31,9 +33,6 @@
       ($ bud build))))
 
 ; called by bass-loop
-(defn github-hook [event client]
-  (github:check-hook event client git checks))
-
 (defn main []
-  (for [{:src src} *stdin*]
-    (run (build src))))
+  (for [event *stdin*]
+    (github:check-hook event git:checkout checks)))

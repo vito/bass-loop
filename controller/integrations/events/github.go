@@ -256,7 +256,13 @@ func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, e
 
 	hookThunk := bass.Thunk{
 		Cmd: bass.ThunkCmd{
-			FS: bassgh.NewFS(ctx, ghClient, repo, ref, ProjectFile),
+			FS: bassgh.NewFS(ctx, ghClient, repo, ref, HookScript),
+		},
+		Stdin: []bass.Value{
+			bass.Bindings{
+				"event":   bass.String(eventName),
+				"payload": payloadScope,
+			}.Scope(),
 		},
 	}
 
@@ -283,21 +289,15 @@ func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, e
 	thunkCtx = zapctx.ToContext(thunkCtx, logger)
 	thunkCtx = ioctx.StderrToContext(thunkCtx, rec.Stderr())
 
-	err = callHook(thunkCtx, hookThunk, "github-hook", bass.NewList(
-		bass.Bindings{
-			"event":   bass.String(eventName),
-			"payload": payloadScope,
-		}.Scope(),
-		(&bassgh.Client{
-			ExternalURL: c.externalURL,
-			DB:          c.DB,
-			GH:          ghClient,
-			Blobs:       c.Blobs,
-			Sender:      sender,
-			Repo:        repo,
-			Meta:        payloadMeta,
-		}).Scope(),
-	))
+	err = callHook(thunkCtx, hookThunk, &bassgh.Client{
+		ExternalURL: c.externalURL,
+		DB:          c.DB,
+		GH:          ghClient,
+		Blobs:       c.Blobs,
+		Sender:      sender,
+		Repo:        repo,
+		Meta:        payloadMeta,
+	})
 	if err != nil {
 		cli.WriteError(thunkCtx, err)
 	}
