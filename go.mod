@@ -13,7 +13,7 @@ require (
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/google/go-github/v43 v43.0.0
-	github.com/livebud/bud v0.1.9
+	github.com/livebud/bud v0.2.1
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/opencontainers/go-digest v1.0.0
@@ -81,7 +81,6 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/moby/buildkit v0.10.0 // indirect
 	github.com/moby/sys/signal v0.6.0 // indirect
-	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
