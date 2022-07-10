@@ -1,0 +1,10 @@
+; the default git image used for bootstrapping
+;
+; projects may override this with their own bass/init.bass
+
+(def *memos* *dir*/bass.lock)
+
+(use (.git (linux/alpine/git)))
+
+; returns a path to the root of the repo given a clone URL and sha
+(def checkout git:checkout)

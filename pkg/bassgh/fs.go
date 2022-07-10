@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/go-github/v43/github"
-	"github.com/vito/bass/pkg/bass"
 	"github.com/vito/bass/pkg/zapctx"
 	"go.uber.org/zap"
 )
@@ -27,19 +26,16 @@ type FS struct {
 	cacheL *sync.Mutex
 }
 
-func NewFS(ctx context.Context, client *github.Client, repo *github.Repository, ref, subPath string) *bass.FSPath {
-	return bass.NewFSPath(
-		&FS{
-			Ctx:    ctx,
-			Client: client,
-			Repo:   repo,
-			Ref:    ref,
+func NewFS(ctx context.Context, client *github.Client, repo *github.Repository, ref string) fs.FS {
+	return &FS{
+		Ctx:    ctx,
+		Client: client,
+		Repo:   repo,
+		Ref:    ref,
 
-			cache:  map[string]*github.RepositoryContent{},
-			cacheL: new(sync.Mutex),
-		},
-		bass.ParseFileOrDirPath(subPath),
-	)
+		cache:  map[string]*github.RepositoryContent{},
+		cacheL: new(sync.Mutex),
+	}
 }
 
 func (ghfs *FS) Open(name string) (fs.File, error) {

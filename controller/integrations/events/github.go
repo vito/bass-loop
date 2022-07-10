@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/v43/github"
 	"github.com/opencontainers/go-digest"
+	defaultinit "github.com/vito/bass-loop/bass/default-init"
 	"github.com/vito/bass-loop/pkg/bassgh"
 	"github.com/vito/bass-loop/pkg/models"
 	"github.com/vito/bass-loop/pkg/runs"
@@ -19,6 +21,8 @@ import (
 	"github.com/vito/progrock"
 	"go.uber.org/zap"
 )
+
+const initPath = "bass/init.bass"
 
 func (c *Controller) handleGitHub(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -254,10 +258,26 @@ func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, e
 		return fmt.Errorf("get ref to load: %w", err)
 	}
 
+	repoFS := bassgh.NewFS(ctx, ghClient, repo, ref)
+
+	repoRoot, err := c.checkoutRepo(ctx, repoFS, repo.GetCloneURL(), ref)
+	if err != nil {
+		return fmt.Errorf("checkout repo: %w", err)
+	}
+
+	hookPath, err := repoRoot.Extend(bass.FilePath{Path: HookScript})
+	if err != nil {
+		return fmt.Errorf("extend repo path: %w", err)
+	}
+
+	var cmd bass.ThunkCmd
+	err = hookPath.Decode(&cmd)
+	if err != nil {
+		return fmt.Errorf("use hook path as thunk cmd: %w", err)
+	}
+
 	hookThunk := bass.Thunk{
-		Cmd: bass.ThunkCmd{
-			FS: bassgh.NewFS(ctx, ghClient, repo, ref, HookScript),
-		},
+		Cmd: cmd,
 		Stdin: []bass.Value{
 			bass.Bindings{
 				"event":   bass.String(eventName),
@@ -282,14 +302,14 @@ func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, e
 	progress := cli.NewProgress()
 
 	recorder := progrock.NewRecorder(progress)
-	thunkCtx := progrock.RecorderToContext(ctx, recorder)
+	runCtx := progrock.RecorderToContext(ctx, recorder)
 
 	rec := recorder.Vertex(digest.Digest("delivery:"+deliveryID), fmt.Sprintf("[delivery] %s %s", eventName, deliveryID))
 	logger := bass.LoggerTo(rec.Stderr())
-	thunkCtx = zapctx.ToContext(thunkCtx, logger)
-	thunkCtx = ioctx.StderrToContext(thunkCtx, rec.Stderr())
+	runCtx = zapctx.ToContext(runCtx, logger)
+	runCtx = ioctx.StderrToContext(runCtx, rec.Stderr())
 
-	err = callHook(thunkCtx, hookThunk, &bassgh.Client{
+	err = callHook(runCtx, hookThunk, &bassgh.Client{
 		ExternalURL: c.externalURL,
 		DB:          c.DB,
 		GH:          ghClient,
@@ -299,7 +319,7 @@ func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, e
 		Meta:        payloadMeta,
 	})
 	if err != nil {
-		cli.WriteError(thunkCtx, err)
+		cli.WriteError(runCtx, err)
 	}
 
 	rec.Done(err)
@@ -309,4 +329,63 @@ func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, e
 	}
 
 	return err
+}
+
+func (c *Controller) checkoutRepo(ctx context.Context, repoFS fs.FS, cloneURL, ref string) (bass.Path, error) {
+	var initThunk bass.Thunk
+	if init, err := repoFS.Open(initPath); err == nil {
+		// project has bass/init.bass, use it
+
+		// we don't actually need the content here so close it immediately
+		//
+		// NB: it'll be cached for the actual run
+		if err := init.Close(); err != nil {
+			return nil, fmt.Errorf("close %s: %w", initPath, err)
+		}
+
+		initThunk = bass.Thunk{
+			Cmd: bass.ThunkCmd{
+				FS: bass.NewFSPath(repoFS, bass.ParseFileOrDirPath(initPath)),
+			},
+		}
+	} else {
+		// project has no init.bass; use the bass-loop default
+
+		initThunk = bass.Thunk{
+			Cmd: bass.ThunkCmd{
+				FS: bass.NewFSPath(defaultinit.FS, bass.ParseFileOrDirPath("init.bass")),
+			},
+		}
+	}
+
+	mod, err := bass.NewBass().Load(ctx, initThunk)
+	if err != nil {
+		return nil, fmt.Errorf("load project.bass: %w", err)
+	}
+
+	var checkout bass.Combiner
+	err = mod.GetDecode("checkout", &checkout)
+	if err != nil {
+		return nil, fmt.Errorf("get checkout binding: %w", err)
+	}
+
+	checkoutRes, err := bass.Trampoline(ctx, checkout.Call(
+		ctx,
+		bass.NewList(
+			bass.String(cloneURL),
+			bass.String(ref),
+		),
+		bass.NewEmptyScope(),
+		bass.Identity,
+	))
+	if err != nil {
+		return nil, err
+	}
+
+	var checkoutPath bass.Path
+	if err := checkoutRes.Decode(&checkoutPath); err != nil {
+		return nil, err
+	}
+
+	return checkoutPath, nil
 }
