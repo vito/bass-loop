@@ -13,17 +13,20 @@
       (with-mount (cache-dir "bass-loop/gopath") /go/)
       (with-mount (cache-dir "bass-loop/gocache") /gocache/)))
 
-(defn mod-version [mod go.mod]
-  (-> ($ rg -r "$1" -o (str mod " v(.*)") $go.mod)
-      (with-image (nixery/ripgrep))
-      (read :unix-table)
-      next
-      first))
+(defn mod-version [src mod]
+  ; starts services, waits for their addrs, evals body, stops services
+  (with [svc thunk]
+    (let [nixery (image-resolver resolve {:os "linux"} [svc:registry])]
+      (-> ($ rg -r "$1" -o (str mod " v(.*)") src/go.mod)
+          (with-image (nixery/ripgrep))
+          (read :unix-table)
+          next
+          first))))
 
 ; a basic test: does it build?
 (defn build [src]
   (let [nixery (nix:nixery src/flake.lock)
-        bud-version (mod-version "github.com/livebud/bud" src/go.mod)]
+        bud-version (mod-version src "github.com/livebud/bud")]
     (from (nixery/shell/go/gcc/git/yarn/gnumake)
       (cd src/
         ; NB: the officially released bud binaries are not statically typed and
