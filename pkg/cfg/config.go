@@ -11,8 +11,6 @@ import (
 type Config struct {
 	ExternalURL string `env:"EXTERNAL_URL"`
 
-	HTTPAddr string `env:"HTTP_ADDR"`
-
 	TLSCertPath string `env:"TLS_CERT_PATH"`
 	TLSKeyPath  string `env:"TLS_KEY_PATH"`
 
