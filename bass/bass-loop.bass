@@ -1,0 +1,47 @@
+; memoize dependency resolution
+(def *memos* *dir*/bass.lock)
+
+(use (.git (linux/alpine/git))
+     (git:github/vito/tabs/ref/main/nix.bass))
+
+; sets up $PATH appropriately and caches dependencies + builds
+(defn with-go [thunk]
+  (-> thunk
+      (with-env {:GOPATH "/go"
+                 :GOCACHE "/gocache"
+                 :PATH "/go/bin:/share/go/bin:/usr/bin:/bin"})
+      (with-mount (cache-dir "bass-loop/gopath") /go/)
+      (with-mount (cache-dir "bass-loop/gocache") /gocache/)))
+
+(defn mod-version [mod go.mod]
+  (-> ($ rg -r "$1" -o (str mod " v(.*)") $go.mod)
+      (with-image (nixery/ripgrep))
+      (read :unix-table)
+      next
+      first))
+
+; a basic test: does it build?
+(defn build [src]
+  (let [nixery (nix:nixery src/flake.lock)
+        bud-version (mod-version "github.com/livebud/bud" src/go.mod)]
+    (from (nixery/shell/go/gcc/git/yarn/gnumake)
+      (cd src/
+        ; NB: the officially released bud binaries are not statically typed and
+        ; don't work in Nix so just just compile it in a way identical to the
+        ; released binary until bud is added to nixpkgs
+        (with-go ($ go install
+                    -trimpath
+                    --ldflags (str "-X github.com/livebud/bud/internal/versions.Bud=" bud-version)
+                    "github.com/livebud/bud"))
+
+        ; pull in bud dependencies
+        ($ yarn)
+
+        ; build ./bud/app
+        (with-go ($ bud build))))))
+
+; returns a thunk that runs the bass-loop server
+(defn server [src]
+  (from (build src)
+    (-> ($ ./bud/app)
+        (with-ports {:http 3000 :ssh 6455}))))

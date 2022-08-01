@@ -1,0 +1,23 @@
+#!/usr/bin/env bass
+
+; memoize dependency resolution
+(def *memos* *dir*/bass.lock)
+
+(use (.git (linux/alpine/git))
+     (*dir*/bass-loop.bass)
+     (*dir*/github.bass))
+
+(defn main []
+  (for [{:src src
+         (:external-url "http://localhost:3000") external-url
+         (:webhook-secret "") webhook-secret
+         (:github-app-id "") github-app-id
+         (:github-app-key "") github-app-key
+         (:ssh-host-key-path "") ssh-host-key} *stdin*]
+    (-> (bass-loop:server src)
+        (with-env {:EXTERNAL_URL external-url
+                   :GITHUB_APP_ID github-app-id
+                   :GITHUB_APP_PRIVATE_KEY_PATH github-app-key
+                   :WEBHOOK_SECRET (mask webhook-secret :webhook-secret)
+                   :SSH_HOST_KEY_PATH ssh-host-key})
+        run)))
