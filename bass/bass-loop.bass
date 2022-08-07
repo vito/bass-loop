@@ -18,8 +18,7 @@
 
 (defn mod-version [src mod]
   ; starts services, waits for their addrs, evals body, stops services
-  (with [nixery (nix:nixery src/flake.lock)]
-    ; (let [nixery (start thunk nixery (image-resolver resolve {:os "linux"} [svc:registry])]
+  (let [nixery (nix:nixery src/flake.lock)]
     (-> ($ rg -r "$1" -o (str mod " v(.*)") src/go.mod)
         (with-image (nixery:linux/ripgrep))
         (read :unix-table)
@@ -28,26 +27,27 @@
 
 ; a basic test: does it build?
 (defn build [src]
-  (let [bud-version (mod-version src "github.com/livebud/bud")]
-    (with [nixery (nix:nixery src/flake.lock)]
-      (from (nixery:linux/shell/go/gcc/git/yarn/gnumake)
-        (cd src/
-          ; NB: the officially released bud binaries are not statically typed and
-          ; don't work in Nix so just just compile it in a way identical to the
-          ; released binary until bud is added to nixpkgs
-          (with-go ($ go install
-                      -trimpath
-                      --ldflags (str "-X github.com/livebud/bud/internal/versions.Bud=" bud-version)
-                      "github.com/livebud/bud"))
+  (let [nixery (nix:nixery src/flake.lock)
+        bud-version (mod-version src "github.com/livebud/bud")]
+    (from (nixery:linux/shell/go/gcc/git/yarn/gnumake)
+      (cd src/
+        ; NB: the officially released bud binaries are not statically typed and
+        ; don't work in Nix so just just compile it in a way identical to the
+        ; released binary until bud is added to nixpkgs
+        (with-go ($ go install
+                    -trimpath
+                    --ldflags (str "-X github.com/livebud/bud/internal/versions.Bud=" bud-version)
+                    "github.com/livebud/bud"))
 
-          ; pull in bud dependencies
-          ($ yarn)
+        ; pull in bud dependencies
+        ($ yarn)
 
-          ; build ./bud/app
-          (with-go ($ bud build)))))))
+        ; build ./bud/app
+        (with-go ($ bud build))))))
 
 ; returns a thunk that runs the bass-loop server
 (defn server [src]
   (from (build src)
     (-> ($ ./bud/app)
-        (with-ports {:http 3000 :ssh 6455}))))
+        (with-port :http 3000)
+        (with-port :ssh 6455))))
