@@ -88,7 +88,6 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/moby/buildkit v0.10.3 // indirect
 	github.com/moby/sys/signal v0.6.0 // indirect
-	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b // indirect
 	github.com/muesli/cancelreader v0.2.1 // indirect
@@ -105,6 +104,7 @@ require (
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20220608084003-fc78c767cd6a // indirect
 	github.com/psanford/memfs v0.0.0-20210214183328-a001468d78ef // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
 	github.com/segmentio/textio v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spy16/slurp v0.2.3 // indirect
