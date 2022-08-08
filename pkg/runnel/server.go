@@ -178,7 +178,7 @@ func (server *Server) Wait() error {
 }
 
 func (server *Server) HandleForwardCommand(s ssh.Session, flags *flag.FlagSet, args []string) {
-	logger := bass.LoggerTo(s).With(zap.String("side", "server"))
+	logger := bass.LoggerTo(s, zap.DebugLevel).With(zap.String("side", "server"))
 
 	var priority int
 	flags.IntVarP(&priority, "priority", "p", 0, "priority")

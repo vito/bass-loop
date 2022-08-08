@@ -305,7 +305,7 @@ func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, e
 	runCtx := progrock.RecorderToContext(ctx, recorder)
 
 	rec := recorder.Vertex(digest.Digest("delivery:"+deliveryID), fmt.Sprintf("[delivery] %s %s", eventName, deliveryID))
-	logger := bass.LoggerTo(rec.Stderr())
+	logger := bass.LoggerTo(rec.Stderr(), zap.DebugLevel)
 	runCtx = zapctx.ToContext(runCtx, logger)
 	runCtx = ioctx.StderrToContext(runCtx, rec.Stderr())
 

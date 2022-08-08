@@ -19,6 +19,7 @@ import (
 	"github.com/vito/bass/pkg/ioctx"
 	"github.com/vito/bass/pkg/zapctx"
 	"github.com/vito/progrock"
+	"go.uber.org/zap"
 )
 
 type Client struct {
@@ -93,7 +94,7 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 	metaVtx := recorder.Vertex(digest.Digest("check:"+checkName), "[check] "+checkName)
 	stderr := metaVtx.Stderr()
 	thunkCtx = ioctx.StderrToContext(thunkCtx, stderr)
-	thunkCtx = zapctx.ToContext(thunkCtx, bass.LoggerTo(stderr))
+	thunkCtx = zapctx.ToContext(thunkCtx, bass.LoggerTo(stderr, zap.DebugLevel))
 
 	return thunk.Start(thunkCtx, bass.Func("handler", "[err]", func(ctx context.Context, merr bass.Value) error {
 		var errv bass.Error

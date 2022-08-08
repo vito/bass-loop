@@ -8,5 +8,5 @@ import (
 type Logger = zap.Logger
 
 func New() *Logger {
-	return bass.Logger()
+	return bass.StdLogger(zap.DebugLevel)
 }

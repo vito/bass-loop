@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -118,7 +119,7 @@ func callHook(ctx context.Context, hookThunk bass.Thunk, client *bassgh.Client) 
 	// track thunk runs separately so we can log them later
 	ctx, runs := bass.TrackRuns(ctx)
 
-	err := bass.NewSession(newLoopScope(client)).Run(ctx, hookThunk)
+	err := bass.NewSession(newLoopScope(client)).Run(ctx, hookThunk, hookThunk.RunState(io.Discard))
 	if err != nil {
 		return fmt.Errorf("load project.bass: %w", err)
 	}
