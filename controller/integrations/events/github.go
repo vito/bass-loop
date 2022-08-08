@@ -360,7 +360,7 @@ func (c *Controller) checkoutRepo(ctx context.Context, repoFS fs.FS, cloneURL, r
 
 	mod, err := bass.NewBass().Load(ctx, initThunk)
 	if err != nil {
-		return nil, fmt.Errorf("load project.bass: %w", err)
+		return nil, fmt.Errorf("initialize repo: %w", err)
 	}
 
 	var checkout bass.Combiner

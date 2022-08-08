@@ -121,7 +121,7 @@ func callHook(ctx context.Context, hookThunk bass.Thunk, client *bassgh.Client) 
 
 	err := bass.NewSession(newLoopScope(client)).Run(ctx, hookThunk, hookThunk.RunState(io.Discard))
 	if err != nil {
-		return fmt.Errorf("load project.bass: %w", err)
+		return fmt.Errorf("run hook thunk: %w", err)
 	}
 
 	logger.Info("hook called; waiting on runs")
