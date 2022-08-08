@@ -446,5 +446,26 @@ memos: {
         }
       }
     }
+    results: {
+      input: {
+        array: {
+          values: {
+            string: {
+              value: "https://github.com/vito/tabs"
+            }
+          }
+          values: {
+            string: {
+              value: "nixery"
+            }
+          }
+        }
+      }
+      output: {
+        string: {
+          value: "2f824aa1b2670bb9e11d6ca138e074b5d66e03a4"
+        }
+      }
+    }
   }
 }

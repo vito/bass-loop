@@ -2,7 +2,7 @@
 (def *memos* *dir*/bass.lock)
 
 (use (.git (linux/alpine/git))
-     (git:github/vito/tabs/ref/main/nix.bass))
+     (git:github/vito/tabs/ref/nixery/nix.bass))
 
 (defn nixery [src]
   (nix:nixery src/flake.lock))
