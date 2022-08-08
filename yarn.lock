@@ -24,10 +24,10 @@ dayjs@^1.11.3:
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
   integrity sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==
 
-livebud@^0.1.7:
-  version "0.1.7"
-  resolved "https://registry.yarnpkg.com/livebud/-/livebud-0.1.7.tgz#59bce3a0e9910ca8b5641ea649f636d7ccaf999d"
-  integrity sha512-0+BFi9gG3ejmz4pZE36pyFuwXSM1vGFTiwfU13aTfAzLJ0yQL1SNgyoJExI1vwBNRelNTxksmP+vplfu0m4Zxg==
+livebud@^0.2.1:
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/livebud/-/livebud-0.2.3.tgz#087af1c790c11d376ba6cd6ae88897ae1c8931e7"
+  integrity sha512-SwWiB5OrkcXsyY0qJrE+tWqu8w+5LNPKnY8g5NQOq2Flh/xeDPlkXQuSja7kjXD6cZJmPmbXZxOzGYuH5GuPeA==
   dependencies:
     react "18.0.0"
     react-dom "18.0.0"
