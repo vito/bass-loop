@@ -4,6 +4,7 @@
 (use (.git (linux/alpine/git))
      (git:github/vito/tabs/ref/nixery/nix.bass))
 
+; returns a nixery registry serving the nixpkgs pinned in flake.lock
 (defn nixery [src]
   (nix:nixery src/flake.lock))
 
