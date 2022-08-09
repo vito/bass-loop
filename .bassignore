@@ -1,2 +1,4 @@
 /bud
 /node_modules
+/bass
+!/bass/default-init/*

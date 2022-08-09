@@ -13,11 +13,15 @@
          (:webhook-secret "") webhook-secret
          (:github-app-id "") github-app-id
          (:github-app-key "") github-app-key
-         (:ssh-host-key-path "") ssh-host-key} *stdin*]
-    (-> (bass-loop:server src)
-        (with-env {:EXTERNAL_URL external-url
-                   :GITHUB_APP_ID github-app-id
-                   :GITHUB_APP_PRIVATE_KEY_PATH github-app-key
-                   :WEBHOOK_SECRET (mask webhook-secret :webhook-secret)
-                   :SSH_HOST_KEY_PATH ssh-host-key})
-        run)))
+         (:ssh-host-key-path "") ssh-host-key
+         (:cloudflare-token "") cloudflare-token
+         (:caddyfile src/Caddyfile) caddyfile} *stdin*]
+    (let [loop-env {:EXTERNAL_URL external-url
+                    :GITHUB_APP_ID github-app-id
+                    :GITHUB_APP_PRIVATE_KEY_PATH github-app-key
+                    :WEBHOOK_SECRET (mask webhook-secret :webhook-secret)
+                    :SSH_HOST_KEY_PATH ssh-host-key}
+          loop-srv (with-env (bass-loop:server src) loop-env)
+          caddy-env {:CLOUDFLARE_TOKEN (mask cloudflare-token :cloudflare-token)}
+          caddy-srv (with-env (bass-loop:https-server src loop-srv caddyfile) caddy-env)]
+      (run caddy-srv))))

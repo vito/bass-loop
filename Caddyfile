@@ -1,0 +1,13 @@
+{
+  email suraci.alex@gmail.com
+}
+
+loop.bass-lang.org {
+  tls {
+    dns cloudflare {$CLOUDFLARE_TOKEN}
+  }
+
+  reverse_proxy {
+    to {$PROXY_ADDR}
+  }
+}
