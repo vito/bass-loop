@@ -2,7 +2,7 @@
 (def *memos* *dir*/bass.lock)
 
 (use (.git (linux/alpine/git))
-     (git:github/vito/tabs/ref/nixery/nix.bass))
+     (git:github/vito/tabs/ref/main/nix.bass))
 
 ; returns a nixery registry serving the nixpkgs pinned in flake.lock
 (defn nixery [src]
