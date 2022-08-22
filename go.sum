@@ -1398,6 +1398,8 @@ github.com/vito/bass v0.9.1-0.20220808023229-22a759e49efd h1:y3VuF1EPrvsKdVV0csU
 github.com/vito/bass v0.9.1-0.20220808023229-22a759e49efd/go.mod h1:mGdwXBc1ASEN/Ihx8sqPOr6l/gsmesWozqELKOkcCnE=
 github.com/vito/bass v0.9.1-0.20220808031440-153e4579452e h1:N2qSdnVhPyvGrvklbiVVzyTDKgpKzr/VeXFhTFwioZE=
 github.com/vito/bass v0.9.1-0.20220808031440-153e4579452e/go.mod h1:mGdwXBc1ASEN/Ihx8sqPOr6l/gsmesWozqELKOkcCnE=
+github.com/vito/bass v0.9.1-0.20220816231822-4a1b64a05cc8 h1:Vo8j7+wTa3dWtkobUL/dXOV1Qk3IgeH8FQdBmDPM5WU=
+github.com/vito/bass v0.9.1-0.20220816231822-4a1b64a05cc8/go.mod h1:ggtTuc2caM/2Nf59LYdjx+zhAif5mT8BHgY5I2z52R8=
 github.com/vito/invaders v0.0.2 h1:igc2c3fm89va6Qle9cEzKmFthYTeHse4Gnz6GWIlnpk=
 github.com/vito/invaders v0.0.2/go.mod h1:Pi5WKkYw/ru9Jm9VD2PXOuorZ86bx1BdNdEn35srCWk=
 github.com/vito/is v0.0.5 h1:Rkpwa1eZ372A4DFq92xblSkTm0X7aNUgEQ5fuM/RNK0=
