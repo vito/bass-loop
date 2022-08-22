@@ -24,11 +24,6 @@
           default = pkgs.callPackage ./default.nix { };
         };
 
-        defaultApp = {
-          type = "app";
-          program = "${packages.bass-loop}/bin/bass-loop";
-        };
-
         devShells = {
           default = pkgs.mkShell {
             nativeBuildInputs = pkgs.callPackage ./nix/deps.nix { } ++ (with pkgs; [
