@@ -32,9 +32,9 @@
         bud-version (mod-version src "github.com/livebud/bud")]
     (from (nixery:linux/shell/go/gcc/git/yarn/gnumake)
       (cd src/
-        ; NB: the officially released bud binaries are not statically typed and
-        ; don't work in Nix so just just compile it in a way identical to the
-        ; released binary until bud is added to nixpkgs
+        ; NB: the officially released bud binaries are not statically linked
+        ; and don't work in Nix so just just compile it in a way identical to
+        ; the released binary until bud is added to nixpkgs
         (with-go ($ go install
                     -trimpath
                     --ldflags (str "-X github.com/livebud/bud/internal/versions.Bud=" bud-version)
