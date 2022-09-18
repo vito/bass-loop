@@ -51,9 +51,13 @@
         (start-checks client sha (checks (clone clone-url sha)))
 
         {:action "synchronize"
-         :pull_request {:head {:sha sha
+         :pull_request {:base {:repo {:clone_url upstream-url}}
+                        :head {:sha sha
                                :repo {:clone_url clone-url}}}}
-        (start-checks client sha (checks (clone clone-url sha)))
+        (when (not (= upstream-url clone-url))
+          ; only run checks for external PRs, otherwise they're redundant with
+          ; the check suites created by pushing
+          (start-checks client sha (checks (clone clone-url sha))))
 
         _
         (log "ignoring action" :event event :action payload:action))
