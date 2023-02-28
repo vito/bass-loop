@@ -17,8 +17,9 @@ server.
 Using Go 1.18+:
 
 ```sh
-git clone https://github.com/vito/bass-loop/cmd/bass-loop
+git clone https://github.com/vito/bass-loop
 go install github.com/livebud/bud
+npm install # or pnpm, or yarn, or [...]
 bud build
 ```
 
