@@ -5,7 +5,7 @@ with pkgs;
   # for running scripts
   bashInteractive
   # go building + testing
-  go_1_19
+  go_1_20
   gcc
   # git plumbing
   git

@@ -56,7 +56,7 @@
 ; returns a thunk that runs Caddy proxied to the given server
 (defn https-server [src server caddyfile]
   (let [nixery (nix:nixery src/flake.lock)]
-    (from (nixery:linux/go_1_18)
+    (from (nixery:linux/go_1_20)
       (with-go ($ go install "github.com/caddyserver/xcaddy/cmd/xcaddy@v0.3.0"))
       (with-go ($ xcaddy build --with "github.com/caddy-dns/cloudflare" --output /bin/caddy))
       (-> ($ caddy run)
