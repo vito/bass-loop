@@ -96,8 +96,8 @@ func (c *Controller) withUserPool(ctx context.Context, user *github.User) (conte
 
 		assoc := runtimes.Assoc{
 			Platform: bass.Platform{
-				OS:   rt.Os,
-				Arch: rt.Arch,
+				OS:           rt.Os,
+				Architecture: rt.Arch,
 			},
 			Runtime: &runtimes.Client{
 				Conn:          conn,

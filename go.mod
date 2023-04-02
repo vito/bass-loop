@@ -18,7 +18,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/spf13/pflag v1.0.5
-	github.com/vito/bass v0.11.1-0.20230402194924-9a217a1bf0a8
+	github.com/vito/bass v0.11.1-0.20230402203223-5434b7458beb
 	github.com/vito/invaders v0.0.2
 	github.com/vito/progrock v0.0.0-20220724152603-739ff265774e
 	go.uber.org/zap v1.21.0
