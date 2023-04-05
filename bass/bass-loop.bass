@@ -4,38 +4,31 @@
 (use (.git (linux/alpine/git))
      (git:github/vito/tabs/ref/main/nix.bass))
 
-; returns a nixery registry serving the nixpkgs pinned in flake.lock
-(defn nixery [src]
-  (nix:nixery src/flake.lock))
-
-; sets up $PATH appropriately and caches dependencies + builds
+; go caching
 (defn with-go [thunk]
   (-> thunk
-      (with-env {:GOPATH "/go"
-                 :GOCACHE "/gocache"
-                 :PATH "/go/bin:/share/go/bin:/usr/bin:/bin"})
-      (with-mount (cache-dir "bass-loop/gopath") /go/)
-      (with-mount (cache-dir "bass-loop/gocache") /gocache/)))
+      (with-mount (cache-dir "bass-loop/gopath") /go/pkg/mod/)
+      (with-mount (cache-dir "bass-loop/gocache") /root/.cache/go-build/)))
 
 (defn mod-version [src mod]
-  ; starts services, waits for their addrs, evals body, stops services
-  (let [nixery (nix:nixery src/flake.lock)]
-    (-> ($ rg -r "$1" -o (str mod " v(.*)") src/go.mod)
-        (with-image (nixery:linux/ripgrep))
-        (read :unix-table)
-        next
-        first)))
+  (-> ($ rg -r "$1" -o (str mod " v(.*)") src/go.mod)
+      (with-image (nix:linux/ripgrep :flake src))
+      (read :unix-table)
+      next
+      first))
 
-; a basic test: does it build?
+; returns a path to a bass-loop compiled binary
 (defn build [src]
-  (let [nixery (nix:nixery src/flake.lock)
-        bud-version (mod-version src "github.com/livebud/bud")]
-    (from (nixery:linux/shell/go/gcc/git/yarn/gnumake)
+  (def bud-version
+    (mod-version src "github.com/livebud/bud"))
+
+  (subpath
+    (from (nix:linux/shell/go/gcc/git/yarn/gnumake :flake src)
       (cd src/
         ; NB: the officially released bud binaries are not statically linked
         ; and don't work in Nix so just just compile it in a way identical to
         ; the released binary until bud is added to nixpkgs
-        (with-go ($ go install
+        (with-go ($ go build -o /usr/bin/bud
                     -trimpath
                     --ldflags (str "-X github.com/livebud/bud/internal/versions.Bud=" bud-version)
                     "github.com/livebud/bud"))
@@ -44,21 +37,27 @@
         ($ yarn)
 
         ; build ./bud/app
-        (with-go ($ bud build))))))
+        (with-go ($ bud build))))
+    ./bud/app))
+
+; the canonical image for running bass-loop
+(defn image [src]
+  (-> (from (nix:linux/busybox :flake src)
+        ($ cp (build src) /usr/bin/bass-loop))
+      (with-entrypoint ["bass-loop"])))
 
 ; returns a thunk that runs the bass-loop server
 (defn server [src]
-  (from (build src)
-    (-> ($ ./bud/app)
+  (from (image src)
+    (-> ($)
         (with-port :http 3000)
         (with-port :ssh 6455))))
 
 ; returns a thunk that runs Caddy proxied to the given server
 (defn https-server [src server caddyfile]
-  (let [nixery (nix:nixery src/flake.lock)]
-    (from (nixery:linux/go_1_20)
-      (with-go ($ go install "github.com/caddyserver/xcaddy/cmd/xcaddy@v0.3.0"))
-      (with-go ($ xcaddy build --with "github.com/caddy-dns/cloudflare" --output /bin/caddy))
-      (-> ($ caddy run)
-          (with-mount caddyfile ./Caddyfile)
-          (with-env {:PROXY_ADDR (addr server :http)})))))
+  (from (nix:linux/go_1_20 :flake src)
+    (with-go ($ go install "github.com/caddyserver/xcaddy/cmd/xcaddy@v0.3.0"))
+    (with-go ($ xcaddy build --with "github.com/caddy-dns/cloudflare" --output /bin/caddy))
+    (-> ($ caddy run)
+        (with-mount caddyfile ./Caddyfile)
+        (with-env {:PROXY_ADDR (addr server :http)}))))

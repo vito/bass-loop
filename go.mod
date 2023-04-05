@@ -13,7 +13,7 @@ require (
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/google/go-github/v43 v43.0.0
-	github.com/livebud/bud v0.2.8
+	github.com/livebud/bud v0.2.9-0.20230321043811-0a5098e03201
 	github.com/mattn/go-colorable v0.1.12
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/opencontainers/go-digest v1.0.0
@@ -34,6 +34,7 @@ require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/Khan/genqlient v0.5.0 // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect
+	github.com/RyanCarrier/dijkstra v1.1.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1 // indirect
 	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
@@ -90,6 +91,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/livebud/bud-test-nested-plugin v0.0.5 // indirect
 	github.com/livebud/bud-test-plugin v0.0.9 // indirect
+	github.com/livebud/transpiler v0.0.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac // indirect
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8 // indirect
@@ -159,7 +161,7 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	honnef.co/go/tools v0.3.3 // indirect
 	mvdan.cc/gofumpt v0.2.0 // indirect
-	rogchap.com/v8go v0.7.0 // indirect
+	rogchap.com/v8go v0.8.0 // indirect
 	src.techknowlogick.com/xgo v1.4.1-0.20220413212431-091a0a22b814 // indirect
 )
 

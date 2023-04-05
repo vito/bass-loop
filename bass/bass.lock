@@ -1,7 +1,7 @@
 memos: {
   module: {
-    cmd: {
-      command: {
+    args: {
+      command_path: {
         name: "run"
       }
     }
@@ -63,6 +63,14 @@ memos: {
             value: {
               object: {
                 bindings: {
+                  symbol: "architecture"
+                  value: {
+                    string: {
+                      value: "amd64"
+                    }
+                  }
+                }
+                bindings: {
                   symbol: "os"
                   value: {
                     string: {
@@ -85,7 +93,99 @@ memos: {
             symbol: "digest"
             value: {
               string: {
-                value: "sha256:760aaf0d59c93f87572ec40dee1efd10a7ea13a78dff1f59a904e908449329ae"
+                value: "sha256:66b210a97bc07bfd4019826bcd13a488b371a6cbe2630a4b37d23275658bd3f2"
+              }
+            }
+          }
+        }
+      }
+    }
+    results: {
+      input: {
+        array: {
+          values: {
+            object: {
+              bindings: {
+                symbol: "platform"
+                value: {
+                  object: {
+                    bindings: {
+                      symbol: "os"
+                      value: {
+                        string: {
+                          value: "linux"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              bindings: {
+                symbol: "repository"
+                value: {
+                  string: {
+                    value: "alpine"
+                  }
+                }
+              }
+              bindings: {
+                symbol: "tag"
+                value: {
+                  string: {
+                    value: "latest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      output: {
+        object: {
+          bindings: {
+            symbol: "repository"
+            value: {
+              string: {
+                value: "alpine"
+              }
+            }
+          }
+          bindings: {
+            symbol: "platform"
+            value: {
+              object: {
+                bindings: {
+                  symbol: "architecture"
+                  value: {
+                    string: {
+                      value: "amd64"
+                    }
+                  }
+                }
+                bindings: {
+                  symbol: "os"
+                  value: {
+                    string: {
+                      value: "linux"
+                    }
+                  }
+                }
+              }
+            }
+          }
+          bindings: {
+            symbol: "tag"
+            value: {
+              string: {
+                value: "latest"
+              }
+            }
+          }
+          bindings: {
+            symbol: "digest"
+            value: {
+              string: {
+                value: "sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126"
               }
             }
           }
@@ -96,50 +196,22 @@ memos: {
 }
 memos: {
   module: {
-    cmd: {
-      command: {
+    args: {
+      command_path: {
         name: "git"
       }
     }
     stdin: {
-      object: {
-        bindings: {
-          symbol: "repository"
-          value: {
-            string: {
-              value: "alpine/git"
+      thunk: {
+        image: {
+          ref: {
+            platform: {
+              os: "linux"
+              arch: "amd64"
             }
-          }
-        }
-        bindings: {
-          symbol: "platform"
-          value: {
-            object: {
-              bindings: {
-                symbol: "os"
-                value: {
-                  string: {
-                    value: "linux"
-                  }
-                }
-              }
-            }
-          }
-        }
-        bindings: {
-          symbol: "tag"
-          value: {
-            string: {
-              value: "latest"
-            }
-          }
-        }
-        bindings: {
-          symbol: "digest"
-          value: {
-            string: {
-              value: "sha256:760aaf0d59c93f87572ec40dee1efd10a7ea13a78dff1f59a904e908449329ae"
-            }
+            repository: "alpine/git"
+            tag: "latest"
+            digest: "sha256:66b210a97bc07bfd4019826bcd13a488b371a6cbe2630a4b37d23275658bd3f2"
           }
         }
       }
@@ -164,7 +236,7 @@ memos: {
       }
       output: {
         string: {
-          value: "2f824aa1b2670bb9e11d6ca138e074b5d66e03a4"
+          value: "6ca3f15d70b739a7929886e20b61dbc4cbdc4e22"
         }
       }
     }

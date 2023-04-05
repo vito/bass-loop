@@ -1,0 +1,7 @@
+#!/usr/bin/env bass
+
+(use (*dir*/bass-loop.bass))
+
+(def {:src src} (next *stdin*))
+
+(publish (bass-loop:image src) "vito/bass-loop")
