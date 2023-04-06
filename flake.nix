@@ -16,19 +16,27 @@
       ];
     in
     flake-utils.lib.eachSystem supportedSystems (system:
+      with (nixpkgs.legacyPackages.${system});
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        env = bundlerEnv {
+          name = "bass-loop-bundler-env";
+          inherit ruby;
+          gemfile = ./Gemfile;
+          lockfile = ./Gemfile.lock;
+          gemset = ./gemset.nix;
+        };
       in
       rec {
         packages = {
-          default = pkgs.callPackage ./default.nix { };
+          default = callPackage ./default.nix { };
         };
 
         devShells = {
-          default = pkgs.mkShell {
-            nativeBuildInputs = pkgs.callPackage ./nix/deps.nix { } ++ (with pkgs; [
+          default = mkShell {
+            nativeBuildInputs = callPackage ./nix/deps.nix { } ++ [
               gopls
-            ]);
+              env
+            ];
           };
         };
       });

@@ -11,4 +11,7 @@ with pkgs;
   git
   # for bud
   yarn
+  # for mersk
+  ruby
+  bundix
 ]
