@@ -2,4 +2,4 @@
 
 # flail
 bundix --lock
-bundix --magic
+bundix --magic --bundle-pack-path .rubby/bundle/

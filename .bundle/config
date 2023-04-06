@@ -1,3 +1,3 @@
 ---
-BUNDLE_PATH: "vendor/bundle"
+BUNDLE_PATH: ".rubby/bundle/"
 BUNDLE_CACHE_ALL: "true"
