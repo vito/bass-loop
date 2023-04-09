@@ -36,6 +36,7 @@ func (c *Controller) handleGitHub(w http.ResponseWriter, r *http.Request) {
 		zap.String("event", eventName),
 		zap.String("delivery", deliveryID),
 	)
+	ctx = zapctx.ToContext(ctx, logger)
 
 	if eventName == "" {
 		logger.Warn("missing event type")

@@ -9,7 +9,8 @@
 
 ; a set of validations to run against a checkout of the repo
 (defn checks [src]
-  {:build (bass-loop:build src)})
+  {:build (from (linux/alpine)
+            ($ stat (bass-loop:build src)))})
 
 ; called by bass-loop
 (defn main []
