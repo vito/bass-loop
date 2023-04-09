@@ -61,3 +61,7 @@ func (c *Controller) Index(ctx context.Context) (*Home, error) {
 
 	return home, nil
 }
+
+func (c *Controller) Up(ctx context.Context) string {
+	return "ok"
+}
