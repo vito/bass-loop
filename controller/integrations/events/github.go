@@ -235,6 +235,9 @@ func (c *Controller) handleGitHubEvent(ctx context.Context, eventName, deliveryI
 }
 
 func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, eventName, deliveryID string, payloadScope *bass.Scope) error {
+	// calling context is ignored; this outlives the hook handler
+	_ = ctx
+
 	// each concurrent Bass must have its own trace
 	ctx = bass.WithTrace(context.Background(), &bass.Trace{})
 
