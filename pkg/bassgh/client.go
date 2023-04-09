@@ -62,7 +62,7 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 	}
 
 	output := &github.CheckRunOutput{
-		Title: github.String("(" + thunk.Cmd.ToValue().String() + ")"),
+		Title: github.String(thunk.Cmdline()),
 		Summary: github.String(strings.Join([]string{
 			`* **thunk** [` + thunk.Name() + `](` + thunkURL.String() + `)`,
 			`* **run** [` + run.ID + `](` + runURL.String() + `)`,

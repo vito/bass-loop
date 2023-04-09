@@ -49,52 +49,16 @@ memos: {
         }
       }
       output: {
-        object: {
-          bindings: {
-            symbol: "repository"
-            value: {
-              string: {
-                value: "alpine/git"
+        thunk: {
+          image: {
+            ref: {
+              platform: {
+                os: "linux"
+                arch: "amd64"
               }
-            }
-          }
-          bindings: {
-            symbol: "platform"
-            value: {
-              object: {
-                bindings: {
-                  symbol: "architecture"
-                  value: {
-                    string: {
-                      value: "amd64"
-                    }
-                  }
-                }
-                bindings: {
-                  symbol: "os"
-                  value: {
-                    string: {
-                      value: "linux"
-                    }
-                  }
-                }
-              }
-            }
-          }
-          bindings: {
-            symbol: "tag"
-            value: {
-              string: {
-                value: "latest"
-              }
-            }
-          }
-          bindings: {
-            symbol: "digest"
-            value: {
-              string: {
-                value: "sha256:66b210a97bc07bfd4019826bcd13a488b371a6cbe2630a4b37d23275658bd3f2"
-              }
+              repository: "alpine/git"
+              tag: "latest"
+              digest: "sha256:66b210a97bc07bfd4019826bcd13a488b371a6cbe2630a4b37d23275658bd3f2"
             }
           }
         }
@@ -141,52 +105,16 @@ memos: {
         }
       }
       output: {
-        object: {
-          bindings: {
-            symbol: "repository"
-            value: {
-              string: {
-                value: "alpine"
+        thunk: {
+          image: {
+            ref: {
+              platform: {
+                os: "linux"
+                arch: "amd64"
               }
-            }
-          }
-          bindings: {
-            symbol: "platform"
-            value: {
-              object: {
-                bindings: {
-                  symbol: "architecture"
-                  value: {
-                    string: {
-                      value: "amd64"
-                    }
-                  }
-                }
-                bindings: {
-                  symbol: "os"
-                  value: {
-                    string: {
-                      value: "linux"
-                    }
-                  }
-                }
-              }
-            }
-          }
-          bindings: {
-            symbol: "tag"
-            value: {
-              string: {
-                value: "latest"
-              }
-            }
-          }
-          bindings: {
-            symbol: "digest"
-            value: {
-              string: {
-                value: "sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126"
-              }
+              repository: "alpine"
+              tag: "latest"
+              digest: "sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126"
             }
           }
         }
@@ -212,6 +140,90 @@ memos: {
             repository: "alpine/git"
             tag: "latest"
             digest: "sha256:66b210a97bc07bfd4019826bcd13a488b371a6cbe2630a4b37d23275658bd3f2"
+          }
+        }
+      }
+    }
+  }
+  calls: {
+    binding: "ls-remote"
+    results: {
+      input: {
+        array: {
+          values: {
+            string: {
+              value: "https://github.com/vito/tabs"
+            }
+          }
+          values: {
+            string: {
+              value: "main"
+            }
+          }
+        }
+      }
+      output: {
+        string: {
+          value: "6ca3f15d70b739a7929886e20b61dbc4cbdc4e22"
+        }
+      }
+    }
+  }
+}
+memos: {
+  module: {
+    args: {
+      command_path: {
+        name: "git"
+      }
+    }
+    stdin: {
+      object: {
+        bindings: {
+          symbol: "repository"
+          value: {
+            string: {
+              value: "alpine/git"
+            }
+          }
+        }
+        bindings: {
+          symbol: "platform"
+          value: {
+            object: {
+              bindings: {
+                symbol: "architecture"
+                value: {
+                  string: {
+                    value: "amd64"
+                  }
+                }
+              }
+              bindings: {
+                symbol: "os"
+                value: {
+                  string: {
+                    value: "linux"
+                  }
+                }
+              }
+            }
+          }
+        }
+        bindings: {
+          symbol: "tag"
+          value: {
+            string: {
+              value: "latest"
+            }
+          }
+        }
+        bindings: {
+          symbol: "digest"
+          value: {
+            string: {
+              value: "sha256:66b210a97bc07bfd4019826bcd13a488b371a6cbe2630a4b37d23275658bd3f2"
+            }
           }
         }
       }

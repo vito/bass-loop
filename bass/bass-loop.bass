@@ -7,6 +7,7 @@
 ; go caching
 (defn with-go [thunk]
   (-> thunk
+      (with-env {:GOBIN "/bin"}) ; install things into $PATH
       (with-mount (cache-dir "bass-loop/gopath") /go/pkg/mod/)
       (with-mount (cache-dir "bass-loop/gocache") /root/.cache/go-build/)))
 
@@ -28,10 +29,10 @@
         ; NB: the officially released bud binaries are not statically linked
         ; and don't work in Nix so just just compile it in a way identical to
         ; the released binary until bud is added to nixpkgs
-        (with-go ($ go build -o /usr/bin/bud
-                    -trimpath
-                    --ldflags (str "-X github.com/livebud/bud/internal/versions.Bud=" bud-version)
-                    "github.com/livebud/bud"))
+        (with-go
+          ($ go install -trimpath
+             --ldflags (str "-X github.com/livebud/bud/internal/versions.Bud=" bud-version)
+             "github.com/livebud/bud"))
 
         ; pull in bud dependencies
         ($ yarn)
@@ -44,14 +45,13 @@
 (defn image [src]
   (-> (from (nix:linux/busybox :flake src)
         ($ cp (build src) /usr/bin/bass-loop))
-      (with-entrypoint ["bass-loop"])))
+      (with-port :http 3000)
+      (with-port :ssh 6455)
+      (with-entrypoint ["bass-loop" "--listen" "0.0.0.0:3000"])))
 
 ; returns a thunk that runs the bass-loop server
 (defn server [src]
-  (from (image src)
-    (-> ($)
-        (with-port :http 3000)
-        (with-port :ssh 6455))))
+  (image src))
 
 ; returns a thunk that runs Caddy proxied to the given server
 (defn https-server [src server caddyfile]

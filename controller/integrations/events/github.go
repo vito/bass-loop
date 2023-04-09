@@ -270,14 +270,8 @@ func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, e
 		return fmt.Errorf("extend repo path: %w", err)
 	}
 
-	var cmd bass.ThunkCmd
-	err = hookPath.Decode(&cmd)
-	if err != nil {
-		return fmt.Errorf("use hook path as thunk cmd: %w", err)
-	}
-
 	hookThunk := bass.Thunk{
-		Cmd: cmd,
+		Args: []bass.Value{hookPath},
 		Stdin: []bass.Value{
 			bass.Bindings{
 				"event":   bass.String(eventName),
@@ -344,16 +338,16 @@ func (c *Controller) checkoutRepo(ctx context.Context, repoFS fs.FS, cloneURL, r
 		}
 
 		initThunk = bass.Thunk{
-			Cmd: bass.ThunkCmd{
-				FS: bass.NewFSPath(repoFS, bass.ParseFileOrDirPath(initPath)),
+			Args: []bass.Value{
+				bass.NewFSPath(repoFS, bass.ParseFileOrDirPath(initPath)),
 			},
 		}
 	} else {
 		// project has no init.bass; use the bass-loop default
 
 		initThunk = bass.Thunk{
-			Cmd: bass.ThunkCmd{
-				FS: bass.NewFSPath(defaultinit.FS, bass.ParseFileOrDirPath("init.bass")),
+			Args: []bass.Value{
+				bass.NewFSPath(defaultinit.FS, bass.ParseFileOrDirPath("init.bass")),
 			},
 		}
 	}

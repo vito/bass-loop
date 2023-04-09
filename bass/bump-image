@@ -4,4 +4,5 @@
 
 (def {:src src} (next *stdin*))
 
-(publish (bass-loop:image src) "vito/bass-loop")
+(defn main [tag]
+  (publish (bass-loop:image src) (str "vito/bass-loop:" tag)))
