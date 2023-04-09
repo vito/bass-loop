@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/v43/github"
@@ -26,11 +27,18 @@ const initPath = "bass/init.bass"
 
 func (c *Controller) handleGitHub(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	ctx = ioctx.StderrToContext(ctx, os.Stderr)
 
 	eventName := r.Header.Get("X-GitHub-Event")
 	deliveryID := r.Header.Get("X-GitHub-Delivery")
 
+	logger := c.Log.With(
+		zap.String("event", eventName),
+		zap.String("delivery", deliveryID),
+	)
+
 	if eventName == "" {
+		logger.Warn("missing event type")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintln(w, "missing event type")
 		return
@@ -38,15 +46,16 @@ func (c *Controller) handleGitHub(w http.ResponseWriter, r *http.Request) {
 
 	payloadBytes, err := github.ValidatePayload(r, []byte(c.Config.GitHubApp.WebhookSecret))
 	if err != nil {
+		logger.Warn("invalid secret")
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		fmt.Fprintln(w, "missing event type")
+		fmt.Fprintln(w, "invalid secret")
 		return
 	}
 
 	err = c.handleGitHubEvent(ctx, eventName, deliveryID, payloadBytes)
 	if err != nil {
+		logger.Error("failed to handle event", zap.Error(err))
 		cli.WriteError(ctx, err)
-
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintln(w, err.Error())
 		return
