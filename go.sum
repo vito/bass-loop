@@ -79,6 +79,7 @@ contrib.go.opencensus.io/exporter/stackdriver v0.13.10/go.mod h1:I5htMbyta491eUx
 contrib.go.opencensus.io/integrations/ocsql v0.1.7/go.mod h1:8DsSdjz3F+APR+0z0WkU1aRorQCFfRxvqjUUPMbF3fE=
 dagger.io/dagger v0.5.2 h1:xNMUnLWqcsb5UrvqOgJx4MJVfe7xDb50kBMXdC63Cjs=
 dagger.io/dagger v0.5.2/go.mod h1:1nbGnLdIfoBV2ahbQjheI//SNGz+b5q1jqf0A+pJ+Oc=
+dagger.io/dagger v0.6.0/go.mod h1:/sSGPh+1LInVuHzTkkr1pZ5N0BAEDoqJ94eM2Xoh/iE=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 filippo.io/edwards25519 v1.0.0-rc.1 h1:m0VOOB23frXZvAOK44usCgLWvtsxIoMCTBGJZlpmGfU=
 filippo.io/edwards25519 v1.0.0-rc.1/go.mod h1:N1IkdkCkiLB6tki+MYJoSx2JTY9NUlxZE7eHn5EwJns=
@@ -1511,6 +1512,8 @@ github.com/vito/bass v0.11.1-0.20230408203835-d97561e30dde h1:UxMPqq0muTAScpcx2p
 github.com/vito/bass v0.11.1-0.20230408203835-d97561e30dde/go.mod h1:QLVCkG67rResQ05L8bV9yffdhEQav3TUJqmeTtI+svM=
 github.com/vito/bass v0.11.1-0.20230409050809-a5ef4dd64bc2 h1:Etg42oSA8v4asrRsPLds3zRfeEAbDYEiMOXs8kcEh+4=
 github.com/vito/bass v0.11.1-0.20230409050809-a5ef4dd64bc2/go.mod h1:QLVCkG67rResQ05L8bV9yffdhEQav3TUJqmeTtI+svM=
+github.com/vito/bass v0.11.1-0.20230414005251-22630d2b3bfd h1:+1U9A0nMQH39EoAEdmAgHjXbUtxAuiYu0vKUBmw+OUY=
+github.com/vito/bass v0.11.1-0.20230414005251-22630d2b3bfd/go.mod h1:53sQTWJBInkCu1XqhObiVLC+6C3DZXv3TA8jy4QykkM=
 github.com/vito/invaders v0.0.2 h1:igc2c3fm89va6Qle9cEzKmFthYTeHse4Gnz6GWIlnpk=
 github.com/vito/invaders v0.0.2/go.mod h1:Pi5WKkYw/ru9Jm9VD2PXOuorZ86bx1BdNdEn35srCWk=
 github.com/vito/is v0.0.5 h1:Rkpwa1eZ372A4DFq92xblSkTm0X7aNUgEQ5fuM/RNK0=

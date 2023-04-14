@@ -18,7 +18,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/spf13/pflag v1.0.5
-	github.com/vito/bass v0.11.1-0.20230409050809-a5ef4dd64bc2
+	github.com/vito/bass v0.11.1-0.20230414005251-22630d2b3bfd
 	github.com/vito/invaders v0.0.2
 	github.com/vito/progrock v0.0.0-20220724152603-739ff265774e
 	go.uber.org/zap v1.21.0
@@ -29,7 +29,7 @@ require (
 )
 
 require (
-	dagger.io/dagger v0.5.2 // indirect
+	dagger.io/dagger v0.6.0 // indirect
 	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/Khan/genqlient v0.5.0 // indirect
