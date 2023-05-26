@@ -306,9 +306,8 @@ func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, e
 		return fmt.Errorf("create hook thunk run: %w", err)
 	}
 
-	progress := cli.NewProgress()
-
-	recorder := progrock.NewRecorder(progress)
+	tape := progrock.NewTape()
+	recorder := progrock.NewRecorder(tape)
 	runCtx := progrock.RecorderToContext(ctx, recorder)
 
 	rec := recorder.Vertex(digest.Digest("delivery:"+deliveryID), fmt.Sprintf("[delivery] %s %s", eventName, deliveryID))
@@ -331,7 +330,7 @@ func (c *Controller) dispatch(ctx context.Context, payload GitHubEventPayload, e
 
 	rec.Done(err)
 
-	if completeErr := runs.Record(ctx, c.DB, c.Blobs, run, progress, err == nil); completeErr != nil {
+	if completeErr := runs.Record(ctx, c.DB, c.Blobs, run, tape, err == nil); completeErr != nil {
 		return fmt.Errorf("failed to complete: %w", completeErr)
 	}
 

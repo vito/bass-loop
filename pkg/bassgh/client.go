@@ -87,8 +87,8 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 		return nil, fmt.Errorf("create check run: %w", err)
 	}
 
-	progress := cli.NewProgress()
-	recorder := progrock.NewRecorder(progress)
+	tape := progrock.NewTape()
+	recorder := progrock.NewRecorder(tape)
 	thunkCtx := progrock.RecorderToContext(ctx, recorder)
 
 	metaVtx := recorder.Vertex(digest.Digest("check:"+checkName), "[check] "+checkName)
@@ -106,12 +106,12 @@ func (client *Client) StartCheck(ctx context.Context, thunk bass.Thunk, checkNam
 
 		ok := errv.Err == nil
 
-		if err := runs.Record(ctx, client.DB, client.Blobs, run, progress, ok); err != nil {
+		if err := runs.Record(ctx, client.DB, client.Blobs, run, tape, ok); err != nil {
 			return fmt.Errorf("failed to complete: %w", err)
 		}
 
 		outBuf := new(bytes.Buffer)
-		progress.Summarize(colorable.NewNonColorable(outBuf))
+		tape.Render(colorable.NewNonColorable(outBuf), cli.ProgressUI)
 		output.Text = github.String("```\n" + outBuf.String() + "\n```")
 
 		var conclusion string

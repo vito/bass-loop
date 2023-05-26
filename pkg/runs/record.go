@@ -12,12 +12,13 @@ import (
 	"github.com/aoldershaw/ansi"
 	"github.com/vito/bass-loop/pkg/blobs"
 	"github.com/vito/bass-loop/pkg/models"
-	"github.com/vito/bass/pkg/cli"
 	"github.com/vito/bass/pkg/zapctx"
+	"github.com/vito/progrock"
+	"github.com/vito/progrock/ui"
 	"go.uber.org/zap"
 )
 
-func Record(ctx context.Context, db models.DB, bucket *blobs.Bucket, run *models.Run, progress *cli.Progress, ok bool) error {
+func Record(ctx context.Context, db models.DB, bucket *blobs.Bucket, run *models.Run, tape *progrock.Tape, ok bool) error {
 	logger := zapctx.FromContext(ctx)
 
 	completedAt := models.NewTime(time.Now().UTC())
@@ -31,18 +32,18 @@ func Record(ctx context.Context, db models.DB, bucket *blobs.Bucket, run *models
 		run.Succeeded = sql.NullInt64{Int64: 0, Valid: true}
 	}
 
-	err := progress.EachVertex(func(v *cli.Vertex) error {
+	err := tape.EachVertex(func(v *progrock.Vertex, l *ui.Vterm) error {
 		var startTime, endTime models.Time
 		if v.Started != nil {
-			startTime = models.NewTime(v.Started.UTC())
+			startTime = models.NewTime(v.Started.AsTime().UTC())
 		}
 		if v.Completed != nil {
-			endTime = models.NewTime(v.Completed.UTC())
+			endTime = models.NewTime(v.Completed.AsTime().UTC())
 		}
 
 		var vErr sql.NullString
-		if v.Error != "" {
-			vErr.String = v.Error
+		if v.Error != nil {
+			vErr.String = v.GetError()
 			vErr.Valid = true
 		}
 
@@ -52,7 +53,7 @@ func Record(ctx context.Context, db models.DB, bucket *blobs.Bucket, run *models
 		}
 
 		vtx := &models.Vertex{
-			Digest:    v.Digest.String(),
+			Digest:    v.Id,
 			RunID:     run.ID,
 			Name:      v.Name,
 			StartTime: &startTime,
@@ -62,8 +63,10 @@ func Record(ctx context.Context, db models.DB, bucket *blobs.Bucket, run *models
 		}
 
 		htmlBuf := new(bytes.Buffer)
-		if v.Log.Len() > 0 {
-			if err := bucket.WriteAll(ctx, blobs.VertexRawLogKey(vtx), v.Log.Bytes(), nil); err != nil {
+		if l.UsedHeight() > 0 {
+			logs := l.Bytes(0, l.UsedHeight())
+
+			if err := bucket.WriteAll(ctx, blobs.VertexRawLogKey(vtx), logs, nil); err != nil {
 				return fmt.Errorf("store raw logs: %w", err)
 			}
 
@@ -71,7 +74,7 @@ func Record(ctx context.Context, db models.DB, bucket *blobs.Bucket, run *models
 			writer := ansi.NewWriter(&lines,
 				// arbitrary, matched my screen
 				ansi.WithInitialScreenSize(67, 316))
-			if _, err := writer.Write(v.Log.Bytes()); err != nil {
+			if _, err := writer.Write(logs); err != nil {
 				return fmt.Errorf("write log: %w", err)
 			}
 
@@ -97,8 +100,8 @@ func Record(ctx context.Context, db models.DB, bucket *blobs.Bucket, run *models
 
 		for _, input := range v.Inputs {
 			edge := models.VertexEdge{
-				SourceDigest: input.String(),
-				TargetDigest: v.Digest.String(),
+				SourceDigest: input,
+				TargetDigest: v.Id,
 			}
 
 			_, err := models.VertexEdgeBySourceDigestTargetDigest(ctx, db, edge.SourceDigest, edge.TargetDigest)
