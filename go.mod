@@ -20,7 +20,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/vito/bass v0.12.1-0.20230525184837-765718ce4868
 	github.com/vito/invaders v0.0.2
-	github.com/vito/progrock v0.4.1-0.20230526000018-c0fe6d6a9e9e
+	github.com/vito/progrock v0.4.1-0.20230526165706-b34527b3aabd
 	go.uber.org/zap v1.21.0
 	gocloud.dev v0.25.0
 	golang.org/x/crypto v0.2.0
@@ -132,7 +132,7 @@ require (
 	github.com/tonistiigi/vt100 v0.0.0-20210615222946-8066bb97264f // indirect
 	github.com/vektah/gqlparser/v2 v2.5.1 // indirect
 	github.com/vito/is v0.0.5 // indirect
-	github.com/vito/vt100 v0.0.0-20230429034200-0ebbfae52df4 // indirect
+	github.com/vito/vt100 v0.1.1 // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	github.com/zmb3/spotify/v2 v2.3.1 // indirect
