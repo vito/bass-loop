@@ -171,5 +171,3 @@ require (
 
 // keep in sync with upstream bass
 replace github.com/moby/buildkit => github.com/sipsma/buildkit v0.6.1-0.20230401023155-9b0bdb600641
-
-replace github.com/livebud/bud => /home/vito/go/pkg/mod/github.com/livebud/bud@v0.2.8
